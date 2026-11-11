@@ -31,3 +31,12 @@ Adobe search links require no integration. Direct programmatic Adobe Stock API l
 ## Rail Pass preview
 
 Unlimited reshuffles five question banks per run. Archive reconstructs the last 14 dates from the current daily rotation and dated overrides. The hosted preview allows both modes. Paid release requires checkout and server-verified account access.
+
+## Place coverage and corrections
+
+The place catalog is built from snapshots and shipped as a static file. Guesses are checked locally. A spelling shared by multiple entities is ambiguous and needs a fuller name or code. Players can search names and aliases after a round, follow source links, and open a public GitHub issue draft for an unmatched guess. A draft never changes a score.
+
+- Metro city and system records are adapted from the [Wikipedia list of metro systems](https://en.wikipedia.org/wiki/List_of_metro_systems), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), with previously curated cities retained in the city bank. The metro-derived records in the catalog are available under the same license. The list focuses on systems and their primary cities and can miss suburbs or newer service.
+- Amtrak data is from the [BTS National Transportation Atlas Database](https://services.arcgis.com/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Amtrak_Stations/FeatureServer/0). The game uses records tagged TRAIN and omits bus-only stops.
+- Install the `lxml` Python package to rebuild. Save the metro list as HTML and the BTS layer query response as JSON (`where=1=1`, `outFields=*`, `returnGeometry=false`, `f=json`). Run `python3 tools/place_sources.py --metro metro.html --amtrak amtrak.json --date YYYY-MM-DD`.
+- For reviewed corrections, pass `--reviewed verified.json`. The file maps a bank ID to rows of `[name, [aliases], points, {"label": "Source label", "url": "https://..."}]`. Use the exact canonical answer name when adding an alias to an existing record. Verify the source supports the round's criteria before merging a correction.

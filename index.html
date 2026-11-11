@@ -10,6 +10,7 @@
 <script defer src="audio.js"></script>
 <script defer src="daily-content.js"></script>
 <script defer src="editorial-banks.js"></script>
+<script defer src="place-catalog.js"></script>
 <script defer src="game.js"></script>
 <script type="module" src="train.mjs"></script>
 </head>
@@ -45,7 +46,13 @@
       <form id="form"><label class="sr" for="guess">Your answer</label><input id="guess" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type an answer…"><button class="primary" id="submit">Add <span aria-hidden="true">↵</span></button></form>
       <p id="feedback" role="status"></p>
       <div id="actions"><button class="quiet" id="end">End round</button><button class="primary" id="next" hidden>Next round <span aria-hidden="true">→</span></button></div>
-      <div id="reveal" hidden><h2>Other answers you could have found</h2><ul id="misses"></ul></div>
+      <div id="reveal" hidden><h2>Other answers you could have found</h2><ul id="misses"></ul>
+        <details id="catalog"><summary>Explore accepted answers</summary>
+          <label for="catalog-search">Search names and aliases</label><input id="catalog-search" type="search" autocomplete="off">
+          <p id="catalog-count" role="status"></p><ul id="catalog-list"></ul>
+        </details>
+        <section id="unmatched" hidden><h3>Unmatched guesses</h3><ul id="unmatched-list"></ul></section>
+      </div>
     </div>
     <aside><div class="aside-top"><h2>Answers found</h2><strong id="count">0</strong></div><ol id="found"></ol><p id="empty">Your answers appear here as you go.</p></aside>
   </div>

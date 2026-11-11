@@ -325,3 +325,14 @@ form .primary { background: #34342a; color: #f2d59c; }
 form .primary:hover { background: #514a36; }
 @media (max-width: 840px) { .cover-copy { background: #302c21; } }
 @media (max-width: 390px) { #train-next, #train-service { font-size: 8px; padding-inline: 4px; } }
+
+#catalog { margin-top: 15px; border-top: 1px solid #a89b7f; padding-top: 9px; }
+#catalog summary { cursor: pointer; font-weight: 700; }
+#catalog label { display: block; margin: 10px 0 4px; font-size: .9rem; }
+#catalog-search { width: 100%; }
+#catalog-count { margin: 7px 0; font-size: .85rem; }
+#catalog-list, #unmatched-list { list-style: none; margin: 0; padding: 0; }
+#catalog-list { max-height: 245px; overflow: auto; }
+#catalog-list li, #unmatched-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 5px 0; border-bottom: 1px solid #bbaf93; }
+#catalog a, #unmatched a { color: #564229; font-size: .83rem; text-decoration-thickness: 1px; }
+#unmatched h3 { margin-bottom: 4px; font-size: 1rem; }

@@ -312,16 +312,19 @@ const curatedRounds = [
 ];
 
 function normalize(value) {
-  return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return value.toLowerCase().replace(/[øłđðæœß]/g, letter => (
+    { ø: "o", ł: "l", đ: "d", ð: "d", æ: "ae", œ: "oe", ß: "ss" }[letter]
+  )).normalize("NFD").replace(/\p{M}/gu, "").replace(/[^a-z0-9]/g, "");
 }
 
 const curatedIds = ["homes", "tunnels", "stormwater", "planning", "bridges"];
 const content = window.builtWorldContent ?? { banks: {}, dates: {} };
 const banks = Object.fromEntries(curatedRounds.map((round, index) => [curatedIds[index], round]));
 const editorial = window.builtWorldEditorial ?? {};
+const placeBanks = window.builtWorldPlaces?.banks ?? {};
 const railTopics = ["high-speed", "shinkansen", "tgv", "acela"];
 const cityTopics = Object.keys(editorial).filter(id => !railTopics.includes(id));
-Object.assign(banks, content.banks, editorial);
+Object.assign(banks, content.banks, editorial, placeBanks);
 const calendar = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit"
 });
@@ -339,6 +342,12 @@ function dailyIds(date) {
     ? [curatedIds[dayNumber % curatedIds.length], curatedIds[(dayNumber + 2) % curatedIds.length],
        railTopics[dayNumber % railTopics.length], cityTopics[(dayNumber + Math.floor(dayNumber / 4)) % cityTopics.length]]
     : curatedIds.filter((_, index) => index !== dayNumber % curatedIds.length);
+  const placeIds = ["amtrak-stations", "metro-cities", "metro-systems"];
+  const placeOffset = dayNumber - Date.parse("2026-11-11") / 86400000;
+  if (placeOffset >= 0 && placeOffset % 2 === 0) {
+    const placeId = placeIds[(placeOffset / 2) % placeIds.length];
+    if (banks[placeId]) rotation[3] = placeId;
+  }
   const largeBank = ["airports", "rail"][dayNumber % 2];
   rotation.splice(dayNumber % 4, 0, largeBank);
   return content.dates[date]?.rounds ?? (banks[largeBank] ? rotation : curatedIds);
@@ -346,13 +355,22 @@ function dailyIds(date) {
 
 function prepareBank(id) {
   if (preparedBanks.has(id)) return preparedBanks.get(id);
-  const round = { ...banks[id], id, lookup: new Map(), byLength: new Map() };
+  const round = { ...banks[id], id, lookup: new Map(), byLength: new Map(), ambiguous: new Set() };
   round.entries = round.answers.map((answer, index) => {
-    const [name, aliases, points] = Array.isArray(answer)
+    const [name, aliases, points, evidence] = Array.isArray(answer)
       ? answer
       : [answer.split("|")[0], answer.split("|").slice(1), index < round.bands[0] ? 10 : index < round.bands[1] ? 20 : 40];
-    const entry = { name, points };
-    for (const alias of [name, ...aliases]) round.lookup.set(normalize(alias), entry);
+    const searchKeys = [...new Set([name, ...aliases].map(normalize))].filter(Boolean);
+    const entry = { name, points, evidence, searchKeys };
+    for (const key of searchKeys) {
+      if (round.ambiguous.has(key)) continue;
+      if (round.lookup.has(key)) {
+        round.lookup.delete(key);
+        round.ambiguous.add(key);
+      } else {
+        round.lookup.set(key, entry);
+      }
+    }
     return entry;
   });
   for (const [alias, entry] of round.lookup) {
@@ -398,6 +416,7 @@ function spellingDistance(input, alias) {
 }
 
 function matchAnswer(round, key) {
+  if (round.ambiguous.has(key)) return { ambiguous: true };
   const exact = round.lookup.get(key) || (
     round.id === "homes" && round.lookup.get(key.replace(/(?:style|house|home|dwelling)s?$/, ""))
   );
@@ -493,7 +512,7 @@ function prepareRound() {
   clearInterval(timerId);
   active = false;
   const round = rounds[roundIndex];
-  run[roundIndex] = { found: new Set(), points: 0 };
+  run[roundIndex] = { found: new Set(), points: 0, unmatched: new Map() };
   $("round").textContent = `ROUND ${roundIndex + 1} / ${rounds.length} · ${round.label.toUpperCase()}`;
   $("prompt").textContent = round.prompt;
   $("rule").textContent = round.rule;
@@ -565,9 +584,60 @@ function finishRound() {
     item.textContent = entry.name;
     return item;
   }));
-  $("reveal").hidden = !picks.length;
+  $("catalog").open = false;
+  $("catalog-search").value = "";
+  renderCatalog();
+  renderUnmatched(result);
+  $("reveal").hidden = false;
+  $("misses").hidden = !picks.length;
   $("next").focus();
 }
+
+function renderCatalog() {
+  const round = rounds[roundIndex];
+  const key = normalize($("catalog-search").value);
+  const matches = key ? round.entries.filter(entry => entry.searchKeys.some(alias => alias.includes(key))) : round.entries;
+  const shown = matches.slice(0, 35);
+  $("catalog-count").textContent = matches.length > shown.length
+    ? `Showing ${shown.length} of ${matches.length.toLocaleString("en-US")}. Search to narrow the list.`
+    : `${matches.length} matching answers.`;
+  $("catalog-list").replaceChildren(...shown.map(entry => {
+    const row = document.createElement("li");
+    row.textContent = entry.name;
+    if (entry.evidence) {
+      const link = document.createElement("a");
+      link.href = entry.evidence.url;
+      link.textContent = entry.evidence.label;
+      link.target = "_blank";
+      link.rel = "noopener";
+      row.append(link);
+    }
+    return row;
+  }));
+}
+
+function renderUnmatched(result) {
+  const round = rounds[roundIndex];
+  $("unmatched").hidden = !result.unmatched.size;
+  $("unmatched-list").replaceChildren(...Array.from(result.unmatched.values(), ({ guess, ambiguous }) => {
+    const row = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = ambiguous ? `${guess} · ambiguous` : guess;
+    const draft = document.createElement("a");
+    const params = new URLSearchParams({
+      title: `Answer review: ${guess}`,
+      body: `Proposed answer: ${guess}\nQuestion: ${round.prompt}\nBank: ${round.id}\nEdition: ${editionDate}\n\nSource link and why it qualifies:\n`
+    });
+    draft.href = `https://github.com/casperrobieniek6-ops/BuiltWorld/issues/new?${params}`;
+    draft.target = "_blank";
+    draft.rel = "noopener";
+    draft.textContent = "Draft public correction on GitHub";
+    row.append(label, draft);
+    return row;
+  }));
+}
+
+$("catalog-search").addEventListener("input", renderCatalog);
 
 $("form").addEventListener("submit", event => {
   event.preventDefault();
@@ -578,7 +648,8 @@ $("form").addEventListener("submit", event => {
   }
 
   const input = $("guess");
-  const key = normalize(input.value);
+  const guess = input.value.trim();
+  const key = normalize(guess);
   if (!key) return;
   input.value = "";
   input.focus();
@@ -587,7 +658,8 @@ $("form").addEventListener("submit", event => {
   $("feedback").dataset.tone = "neutral";
   if (!entry) {
     gameAudio.play("miss");
-    $("feedback").textContent = ambiguous ? "That matches more than one answer. Try a fuller name." : "Outside this playtest’s answer bank. Try another.";
+    result.unmatched.set(key, { guess, ambiguous });
+    $("feedback").textContent = ambiguous ? "That matches more than one place. Try a fuller name or code." : "No match in this answer bank. You can flag it after the round.";
     return;
   }
   if (result.found.has(entry)) {

@@ -30,6 +30,15 @@ def editorial_searches():
     return {key: bank["photoSearch"] for key, bank in json.loads(text.removeprefix("window.builtWorldEditorial = ").removesuffix(";")).items()}
 
 
+def place_searches():
+    path = DIST / "place-catalog.js"
+    if not path.is_file():
+        return {}
+    text = path.read_text(encoding="utf-8").strip()
+    banks = json.loads(text.removeprefix("window.builtWorldPlaces = ").removesuffix(";"))["banks"]
+    return {key: bank["photoSearch"] for key, bank in banks.items()}
+
+
 RAIL_TOPICS = ["high-speed", "shinkansen", "tgv", "acela"]
 COVER_SEARCH = "Golden Gate Bridge aerial sunset San Francisco"
 DATASETS = {
@@ -153,6 +162,11 @@ def round_ids(day, override, known):
     else:
         omitted = ordinal % len(built)
         chosen = built[:omitted] + built[omitted + 1:]
+    offset = (day - date(2026, 11, 11)).days
+    if offset >= 0 and offset % 2 == 0:
+        place_id = ["amtrak-stations", "metro-cities", "metro-systems"][(offset // 2) % 3]
+        if place_id in known:
+            chosen[3] = place_id
     large = list(DATASETS)[ordinal % len(DATASETS)]
     chosen.insert(ordinal % 4, large)
     return chosen
@@ -163,7 +177,7 @@ def bank_config(path):
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
     for key, meta in data.items():
-        if not re.fullmatch(r"[a-z][a-z0-9-]+", key) or key in CURATED or key in DATASETS or key in editorial_searches():
+        if not re.fullmatch(r"[a-z][a-z0-9-]+", key) or key in CURATED or key in DATASETS or key in editorial_searches() or key in place_searches():
             raise ValueError(f"Invalid or reserved bank ID: {key}")
         if any(not isinstance(meta.get(field), str) or not meta[field].strip()
                for field in ("label", "prompt", "rule", "source", "sourceLabel", "photoSearch")):
@@ -219,7 +233,7 @@ def compile_content(args):
     dates = {}
     for key, entry in load_schedule(args.schedule).items():
         day = date.fromisoformat(key)
-        selected = round_ids(day, entry, set(metadata) | set(CURATED) | set(editorial_searches()))
+        selected = round_ids(day, entry, set(metadata) | set(CURATED) | set(editorial_searches()) | set(place_searches()))
         photos = entry.get("photos", {})
         if set(photos) - {"cover", *selected}:
             raise ValueError(f"{day}: photo slot does not belong to this edition")
@@ -239,7 +253,7 @@ def photo_brief(args):
     day = date.fromisoformat(args.date)
     override = load_schedule(args.schedule).get(args.date, {})
     custom = bank_config(args.banks)
-    searches = {**CURATED, **editorial_searches(), **{key: value["photoSearch"] for key, value in {**DATASETS, **custom}.items()}}
+    searches = {**CURATED, **editorial_searches(), **place_searches(), **{key: value["photoSearch"] for key, value in {**DATASETS, **custom}.items()}}
     selected = round_ids(day, override, set(searches))
     for key, search in [("cover", COVER_SEARCH), *((key, searches[key]) for key in selected)]:
         record = override.get("photos", {}).get(key, {})
