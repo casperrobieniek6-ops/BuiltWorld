@@ -13,6 +13,7 @@
 <script defer src="place-catalog.js"></script>
 <script defer src="special-trains.js"></script>
 <script defer src="housing-catalog.js"></script>
+<script defer src="tracker.js"></script>
 <script defer src="game.js"></script>
 <script type="module" src="train.mjs"></script>
 </head>
@@ -20,7 +21,7 @@
 <div class="shell">
 <header class="masthead">
   <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">▥</span> BUILT WORLD</a>
-  <div class="masthead-actions"><button class="pass-toggle" id="open-pass" type="button">Rail Pass <span>↗</span></button>
+  <div class="masthead-actions"><button class="pass-toggle" id="open-tracker" type="button">Tracker</button><button class="pass-toggle" id="open-pass" type="button">Rail Pass <span>↗</span></button>
   <button class="sound" id="sound" type="button" aria-pressed="true"><span id="sound-icon" aria-hidden="true">◖))</span> <span id="sound-label">Sound on</span></button></div>
 </header>
 <main>
@@ -29,8 +30,9 @@
     <p class="eyebrow"><span class="dot"></span> <span id="edition-day"></span></p>
     <h1>Built<br><em>World<span>.</span></em></h1>
     <p class="subtitle">How well do you know the world we built?</p>
-    <p class="instructions">Type as many answers as you can. One clears the round. Obscure finds score more.</p>
+    <p class="instructions">Type as many answers as you can. One clears the round. Harder finds score up to 100 points.</p>
     <button class="primary" id="start">Play daily <span aria-hidden="true">→</span></button>
+    <p class="tracking-note">Guesses are saved to your browser’s player ID.</p>
     <div class="cover-links"><button type="button" id="open-unlimited">Unlimited</button><button type="button" id="open-archive">Archive</button></div>
   </div>
   <div class="cover-visual"><div id="intro-route"></div><div id="cover-photo" class="photo-slot cover-photo" aria-label="Cover photo slot">COVER PHOTO SLOT · GOLDEN GATE</div></div>
@@ -55,7 +57,7 @@
   <div class="round-manifest">
     <aside><div class="aside-top"><h2>Answer log</h2><strong id="count">0</strong></div><ol id="found"></ol><p id="empty">Your answers appear here as you go.</p></aside>
     <div class="round-reference">
-      <div class="tier-key" aria-label="Point tiers"><span>10 · Common</span><span>20 · Uncommon</span><span>40 · Obscure</span></div>
+      <div class="tier-key" aria-label="Point tiers"><span>10 · Common</span><span>20 · Uncommon</span><span>40 · Obscure</span><span>60 · Rare</span><span>100 · Landmark</span></div>
       <div id="round-photo" class="photo-slot" aria-label="Photo slot"></div>
       <div id="reveal" hidden><h2>Other answers you could have found</h2><ul id="misses"></ul>
         <details id="catalog"><summary>Explore accepted answers</summary>
@@ -91,11 +93,18 @@
     <form method="dialog"><button class="pass-close" aria-label="Close Rail Pass">×</button></form>
   </div>
   <h2 id="pass-title">Rail Pass<span>.</span></h2>
-  <p class="pass-note">Unlimited and Archive are available to try in this preview. Paid checkout is coming later.</p>
+  <p class="pass-note">Each mode includes five free runs on this browser. Daily play is free.</p>
   <div class="pass-modes">
-    <section><h3>Unlimited</h3><p>Run a shuffled five-round game whenever you want.</p><button class="primary" id="practice" type="button">Start practice →</button></section>
-    <section><h3>Archive</h3><p>Play a previous date from the daily rotation.</p><label for="archive-date">Edition</label><select id="archive-date"></select><button class="quiet" id="play-archive" type="button">Play selected date →</button></section>
+    <section><h3>Unlimited</h3><p>Run a shuffled five-round game whenever you want.</p><p id="unlimited-turns"></p><button class="primary" id="practice" type="button">Start practice →</button></section>
+    <section><h3>Archive</h3><p>Play a previous date from the daily rotation.</p><label for="archive-date">Edition</label><select id="archive-date"></select><p id="archive-turns"></p><button class="quiet" id="play-archive" type="button">Play selected date →</button></section>
   </div>
+  <div id="paywall" hidden><h3>Rail Pass required</h3><p>You’ve used the free turns for this mode. Paid checkout is not connected yet.</p></div><p id="pass-status" role="status"></p>
+</dialog>
+<dialog id="player-tracker" aria-labelledby="tracker-title">
+  <div class="pass-head"><h2 id="tracker-title">Player tracker</h2><form method="dialog"><button class="pass-close" aria-label="Close player tracker">×</button></form></div>
+  <p>Runs, answers, and suggestions are saved to this browser’s player ID. Avoid entering personal information in answers.</p>
+  <p id="tracker-status" role="status"></p>
+  <div id="tracker-data" hidden><h3>Recent runs</h3><ul id="tracked-runs"></ul><h3>Recent answers</h3><ul id="tracked-answers"></ul><h3>Suggestions</h3><ul id="tracked-suggestions"></ul></div>
 </dialog>
 <footer class="site-footer">
   <div class="footer-meta"><span>BUILT WORLD / PLAYTEST</span><span>DAILY RESET · MIDNIGHT EASTERN</span></div>

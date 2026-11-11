@@ -40,3 +40,9 @@ The place catalog is built from snapshots and shipped as a static file. Guesses 
 - Amtrak data is from the [BTS National Transportation Atlas Database](https://services.arcgis.com/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Amtrak_Stations/FeatureServer/0). The game uses records tagged TRAIN and omits bus-only stops.
 - Install the `lxml` Python package to rebuild. Save the metro list as HTML and the BTS layer query response as JSON (`where=1=1`, `outFields=*`, `returnGeometry=false`, `f=json`). Run `python3 tools/place_sources.py --metro metro.html --amtrak amtrak.json --date YYYY-MM-DD`.
 - For reviewed corrections, pass `--reviewed verified.json`. The file maps a bank ID to rows of `[name, [aliases], points, {"label": "Source label", "url": "https://..."}]`. Use the exact canonical answer name when adding an alias to an existing record. Verify the source supports the round's criteria before merging a correction.
+
+## Player tracker and free turns
+
+The hosted Worker uses D1 for anonymous browser IDs, runs, submitted guesses, and answer suggestions. Each browser gets five run starts in Unlimited and five in Archive. Daily play has no quota. Checkout and paid entitlements are pending. Client scores are retained as playtest telemetry, not a verified leaderboard.
+
+Run `python3 tools/build_worker.py` to embed the existing client in the Worker artifact. Apply the SQL in `drizzle/` through the deployment pipeline. The tracker dialog shows the current browser's activity. For aggregate answers and suggestions, configure `TRACKER_ADMIN_KEY` as a server-only environment secret and request `GET /api/admin` with a bearer token. No admin data is exposed without that key.

@@ -1,3 +1,5 @@
 .content-cache/
 .private/
 dist/photos/
+
+/dist/server/

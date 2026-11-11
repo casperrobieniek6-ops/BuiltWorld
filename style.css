@@ -431,3 +431,29 @@ form .primary:hover { background: #514a36; }
 #special-results-list li { display: grid; gap: 3px; background: #e7cf9c; border: 1px solid #ac8854; padding: 7px 10px; font-size: 13px; }
 #special-results-list span { font-size: 11px; }
 @media (prefers-reduced-motion: reduce) { #train-discovery { animation: none; } }
+
+/* Keep the whole city in view while the player answers. */
+.journey-stage { grid-template-columns: minmax(0, 1fr) minmax(290px, 34%); }
+.journey-stage .play {
+  grid-area: 1 / 2; align-self: stretch; justify-self: stretch; width: auto; margin: 0;
+  padding: clamp(17px, 3vw, 34px); border-radius: 0; border: 0; border-left: 1px solid #685943; box-shadow: none;
+}
+.journey-stage #game-route #train-view { height: clamp(310px, 37vw, 510px); }
+.tier-key span:nth-child(4), .point-flight.tier-60 { background: #cfc7e6; color: #3c3159; }
+.tier-key span:nth-child(5), .point-flight.tier-100 { background: #ffdc84; color: #533515; }
+.point-flight.tier-100 { box-shadow: 0 0 34px #ffc362; font-size: 24px; }
+#paywall { margin-top: 14px; padding: 10px; background: #e8d2a2; border: 1px solid #ba9554; }
+#paywall h3, #paywall p { margin: 0 0 4px; }
+#player-tracker { color-scheme: light; width: min(650px, calc(100% - 24px)); max-height: 85vh; border: 1px solid #998665; border-radius: 8px; color: var(--ink); background: var(--paper); padding: 20px; }
+#player-tracker::backdrop { background: #100e0bd9; }
+#player-tracker h2 { margin: 0; }
+#tracker-data ul { padding-left: 1.3em; max-height: 155px; overflow: auto; }
+.suggest-answer { padding: 4px 6px; border: 1px solid #9d835a; background: #e8d6ac; color: #463821; font-size: 12px; }
+@media (max-width: 830px) {
+  .journey-stage { grid-template-columns: minmax(0,1fr); }
+  .journey-stage .play { grid-area: 2 / 1; border-left: 0; border-top: 1px solid #685943; }
+  .journey-stage #game-route #train-view { height: clamp(195px, 42vw, 320px); }
+}
+@media (max-width: 390px) { #open-tracker { font-size: 10px; } }
+
+.tracking-note { margin: 8px 0 0; color: #d0c1a3; font-size: 11px; }

@@ -347,6 +347,15 @@ const specials = window.builtWorldSpecials;
 const specialName = id => (specials.liveries[id] ?? specials.fleet[id]).name;
 let activeSpecial = null;
 const discoveries = new Map();
+const tracker = window.builtWorldTracker;
+let trackedRun;
+let answerSequence = 0;
+let starting = false;
+function stableOrder(value) {
+  let hash = 2166136261;
+  for (const letter of value) hash = Math.imul(hash ^ letter.charCodeAt(0), 16777619);
+  return hash >>> 0;
+}
 
 function dailyIds(date) {
   const dayNumber = Date.parse(date) / 86400000;
@@ -414,9 +423,29 @@ function prepareBank(id) {
     round.byLength.get(alias.length).push([alias, entry]);
   }
   round.specials = new Map();
-  for (const [name, trainId] of Object.entries(specials.answers[id] ?? {})) {
-    const answer = round.lookup.get(normalize(name));
-    if (answer) round.specials.set(answer, trainId);
+  const featured = new Map();
+  if (id !== "high-speed") {
+    for (const [name, trainId] of Object.entries(specials.answers[id] ?? {})) {
+      const answer = round.lookup.get(normalize(name));
+      if (answer) featured.set(answer, trainId);
+    }
+  }
+  const ordered = [...round.entries].sort((a, b) => b.points - a.points || stableOrder(id + a.name) - stableOrder(id + b.name));
+  const count = 5 + stableOrder(id) % 2;
+  // Fill exactly five or six slots, preferring explicitly curated answers.
+  const selected = new Set([...new Set([...featured.keys(), ...ordered])].slice(0, count));
+  const rareCount = Math.max(2, Math.min(12, Math.floor(round.entries.length / 9)));
+  const rareAnswers = new Set(ordered.filter(entry => !selected.has(entry)).slice(0, rareCount));
+  const fallbackTrains = ["skyline", "river", "brass", "garden", "airport", "night"];
+  for (const entry of round.entries) {
+    if (selected.has(entry)) {
+      entry.points = 100;
+      if (id !== "high-speed") {
+        round.specials.set(entry, featured.get(entry) ?? fallbackTrains[stableOrder(id + entry.name) % fallbackTrains.length]);
+      }
+    } else if (rareAnswers.has(entry)) {
+      entry.points = 60;
+    }
   }
   preparedBanks.set(id, round);
   return round;
@@ -528,7 +557,7 @@ const categoryGroups = {
   bridges: "Engineering", "bridges-world": "Engineering", stormwater: "Water infrastructure",
   canals: "Water infrastructure", airports: "Aviation"
 };
-const pointTiers = [[10, "Common"], [20, "Uncommon"], [40, "Obscure"]];
+const pointTiers = [[10, "Common"], [20, "Uncommon"], [40, "Obscure"], [60, "Rare"], [100, "Landmark"]];
 const categoryGroup = round => categoryGroups[round.id] ?? (round.id in editorial || round.id in placeBanks || round.id === "rail" ? "Rail" : "Infrastructure");
 
 function flyPoints(points) {
@@ -549,7 +578,7 @@ function flyPoints(points) {
     { transform: "translate(-50%,-50%) scale(.65)", opacity: 0 },
     { transform: "translate(-50%,calc(-50% - 23px)) scale(1.22)", opacity: 1, offset: .24 },
     { transform: `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.65)`, opacity: 0 }
-  ], { duration: points === 40 ? 810 : 620, easing: "cubic-bezier(.2,.6,.22,1)" });
+  ], { duration: points >= 60 ? 910 : points === 40 ? 810 : 620, easing: "cubic-bezier(.2,.6,.22,1)" });
   flight.finished.then(() => {
     chip.remove();
     if (!target.isConnected) return;
@@ -557,7 +586,7 @@ function flyPoints(points) {
   }, () => chip.remove());
 }
 
-const historyKey = "built-world-score-history-v1";
+const historyKey = "built-world-score-history-v2";
 const minimumSample = 5;
 function readHistory() {
   try {
@@ -629,7 +658,7 @@ function prepareRound() {
   $("round").textContent = `ROUND ${roundIndex + 1} / ${rounds.length} · ${round.label.toUpperCase()}`;
   $("prompt").textContent = round.prompt;
   $("round-category").textContent = categoryGroup(round);
-  $("special-count").textContent = round.specials.size ? `◆ ${round.specials.size} special ${round.specials.size === 1 ? "answer" : "answers"}` : "";
+  $("special-count").textContent = round.specials.size ? `◆ ${round.specials.size} train unlocks` : "";
   $("round-score").textContent = "0 PTS";
   $("game-route").dataset.category = categoryGroup(round);
   $("rule").textContent = round.rule;
@@ -686,6 +715,7 @@ function finishRound() {
   const result = run[roundIndex];
   gameAudio.play("end");
   updateRoute("review");
+  void tracker.flush();
   $("feedback").dataset.tone = "neutral";
   $("feedback").textContent = result.found.size
     ? `Round cleared · ${result.found.size} found · ${result.points} points`
@@ -740,16 +770,23 @@ function renderUnmatched(result) {
     const row = document.createElement("li");
     const label = document.createElement("span");
     label.textContent = ambiguous ? `${guess} · ambiguous` : guess;
-    const draft = document.createElement("a");
-    const params = new URLSearchParams({
-      title: `Answer review: ${guess}`,
-      body: `Proposed answer: ${guess}\nQuestion: ${round.prompt}\nBank: ${round.id}\nEdition: ${editionDate}\n\nSource link and why it qualifies:\n`
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "suggest-answer";
+    button.textContent = "Suggest this answer";
+    const runId = trackedRun;
+    button.disabled = !runId;
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        await tracker.suggest(runId, round.id, guess);
+        button.textContent = "Suggestion saved";
+      } catch {
+        button.textContent = "Retry suggestion";
+        button.disabled = false;
+      }
     });
-    draft.href = `https://github.com/casperrobieniek6-ops/BuiltWorld/issues/new?${params}`;
-    draft.target = "_blank";
-    draft.rel = "noopener";
-    draft.textContent = "Draft public correction on GitHub";
-    row.append(label, draft);
+    row.append(label, button);
     return row;
   }));
 }
@@ -777,6 +814,7 @@ $("form").addEventListener("submit", event => {
   const result = run[roundIndex];
   $("feedback").dataset.tone = "neutral";
   if (!entry) {
+    tracker.answer(trackedRun, {seq: ++answerSequence, bank: round.id, guess, outcome: ambiguous ? "ambiguous" : "unmatched", points: 0});
     gameAudio.play("miss");
     result.unmatched.set(key, { guess, ambiguous });
     const genericHousing = round.id === "planning" && /^(?:(?:garden|gardens|gardenapartments|housingprojects?)(?:(?:in)?(?:la|losangeles|nyc|newyork))?|projects)$/.test(preferredKey);
@@ -786,13 +824,15 @@ $("form").addEventListener("submit", event => {
     return;
   }
   if (result.found.has(entry)) {
+    tracker.answer(trackedRun, {seq: ++answerSequence, bank: round.id, guess, outcome: "duplicate", points: 0});
     gameAudio.play("miss");
     $("feedback").textContent = `${entry.name} is already on your list.`;
     return;
   }
   result.found.add(entry);
   result.points += entry.points;
-  const rare = entry.points === 40;
+  tracker.answer(trackedRun, {seq: ++answerSequence, bank: round.id, guess, outcome: "accepted", points: entry.points});
+  const rare = entry.points >= 40;
   const special = rounds[roundIndex].specials.get(entry);
   if (special) {
     activeSpecial = special;
@@ -803,7 +843,7 @@ $("form").addEventListener("submit", event => {
   $("round-score").textContent = `${result.points} PTS`;
   flyPoints(entry.points);
   $("feedback").dataset.tone = special || rare ? "rare" : "correct";
-  $("feedback").textContent = `+${entry.points} · ${entry.name}${corrected ? " · Spelling corrected" : ""}${special ? ` · ◆ ${specialName(special)}` : rare ? " · Obscure find" : ""}`;
+  $("feedback").textContent = `+${entry.points} · ${entry.name}${corrected ? " · Spelling corrected" : ""}${special ? ` · ◆ ${specialName(special)}` : rare ? ` · ${pointTiers.find(([value]) => value === entry.points)[1]}` : ""}`;
   $("count").textContent = result.found.size;
   $("empty").hidden = true;
   const item = document.createElement("li");
@@ -883,7 +923,27 @@ function showResults() {
   $("resultsTitle").focus();
 }
 
-function startGame(kind = "daily", date = today) {
+async function startGame(kind = "daily", date = today) {
+  if (starting) return;
+  starting = true;
+  let ticket;
+  try {
+    ticket = await tracker.start(kind, date);
+    updateTurns(ticket.remaining);
+  } catch (error) {
+    if (kind !== "daily") {
+      openPass(kind === "archive" ? "archive-date" : "practice");
+      if (error.remaining) updateTurns(error.remaining);
+      $("paywall").hidden = error.status !== 402;
+      $("pass-status").textContent = error.status === 402 ? "" : "Free turns could not be checked. Try again.";
+      return;
+    }
+  } finally {
+    starting = false;
+  }
+  if (pass.open) pass.close();
+  trackedRun = ticket?.id;
+  answerSequence = 0;
   configureRun(kind, date);
   const label = kind === "unlimited" ? "UNLIMITED" : `${kind.toUpperCase()} / ${date}`;
   $("results-day").textContent = `${label} / RESULTS`;
@@ -924,20 +984,48 @@ for (let offset = 1; offset <= 14; offset += 1) {
   option.textContent = dateLabel.format(date);
   archiveDate.append(option);
 }
+function updateTurns(remaining) {
+  for (const kind of ["unlimited", "archive"]) {
+    const count = remaining[kind];
+    $(`${kind}-turns`).textContent = count ? `${count} of 5 free runs left` : "Rail Pass required";
+  }
+}
 function openPass(focus) {
   if (!pass.open) pass.showModal();
+  $("paywall").hidden = true;
+  $("pass-status").textContent = "";
   $(focus).focus();
+  tracker.history().then(data => updateTurns(data.remaining), () => {});
 }
+$("open-tracker").addEventListener("click", async () => {
+  $("player-tracker").showModal();
+  $("tracker-data").hidden = true;
+  $("tracker-status").textContent = "Loading player history…";
+  await tracker.flush();
+  try {
+    const data = await tracker.history();
+    const lists = [
+      ["tracked-runs", data.runs.map(row => `${row.edition} · ${row.mode}`)],
+      ["tracked-answers", data.guesses.map(row => `${row.guess} · ${row.bank} · ${row.outcome}${row.points ? ` · +${row.points}` : ""}`)],
+      ["tracked-suggestions", data.suggestions.map(row => `${row.guess} · ${row.bank}`)]
+    ];
+    for (const [id, labels] of lists) {
+      $(id).replaceChildren(...(labels.length ? labels : ["None yet"]).map(label => {
+        const item = document.createElement("li"); item.textContent = label; return item;
+      }));
+    }
+    $("tracker-status").textContent = "";
+    $("tracker-data").hidden = false;
+  } catch { $("tracker-status").textContent = "The tracker is temporarily unavailable."; }
+});
 $("open-pass").addEventListener("click", () => openPass("practice"));
 $("open-unlimited").addEventListener("click", () => openPass("practice"));
 $("open-archive").addEventListener("click", () => openPass("archive-date"));
 $("footer-archive").addEventListener("click", () => openPass("archive-date"));
 $("practice").addEventListener("click", () => {
-  pass.close();
   startGame("unlimited");
 });
 $("play-archive").addEventListener("click", () => {
-  pass.close();
   startGame("archive", archiveDate.value);
 });
 $("begin-round").addEventListener("click", startRound);
