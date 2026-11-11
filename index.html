@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#171b17">
+<meta name="description" content="A rapid-fire quiz about the things people build.">
+<title>Built World</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="audio.js"></script>
+<script defer src="game.js"></script>
+</head>
+<body>
+<div class="shell">
+<header class="masthead">
+  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">▥</span> BUILT WORLD</a>
+  <button class="sound" id="sound" type="button" aria-pressed="true"><span id="sound-icon" aria-hidden="true">◖))</span> <span id="sound-label">Sound on</span></button>
+</header>
+<main>
+<section id="intro" class="cover">
+  <div class="cover-copy">
+    <p class="eyebrow"><span class="dot"></span> EDITION 001</p>
+    <h1>Built<br><em>World<span>.</span></em></h1>
+    <p class="subtitle">How well do you know the world we built?</p>
+    <p class="instructions">Type as many answers as you can. One clears the round. Obscure finds score more.</p>
+    <button class="primary" id="start">Start game <span aria-hidden="true">→</span></button>
+  </div>
+  <div class="cover-art" aria-hidden="true"></div>
+  <div class="cover-strip"><span>5 ROUNDS</span><span>45 SECONDS EACH</span><span>ARCHITECTURE · INFRASTRUCTURE · PLANNING</span></div>
+</section>
+<section class="game" id="game" hidden>
+  <div class="round-banner" id="round-art"><div class="roundhead"><p class="eyebrow" id="round"></p><span class="timer" id="timer"></span></div><div class="track" aria-hidden="true"><div id="bar"></div></div></div>
+  <div class="game-body">
+    <div class="play">
+      <h1 class="prompt" id="prompt" tabindex="-1"></h1>
+      <p class="rule" id="rule"></p>
+      <form id="form"><label class="sr" for="guess">Your answer</label><input id="guess" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type an answer…"><button class="primary" id="submit">Add <span aria-hidden="true">↵</span></button></form>
+      <p id="feedback" role="status"></p>
+      <div id="actions"><button class="quiet" id="end">End round</button><button class="primary" id="next" hidden>Next round <span aria-hidden="true">→</span></button></div>
+      <div id="reveal" hidden><h2>Other answers you could have found</h2><ul id="misses"></ul></div>
+    </div>
+    <aside><div class="aside-top"><h2>Answers found</h2><strong id="count">0</strong></div><ol id="found"></ol><p id="empty">Your answers appear here as you go.</p></aside>
+  </div>
+</section>
+<section class="results" id="results" hidden>
+  <div class="results-top"><p class="eyebrow">EDITION 001 / RESULTS</p><h1 tabindex="-1" id="resultsTitle">Your run<span>.</span></h1></div>
+  <div class="results-body"><div class="stats" id="stats"></div><div id="review"></div>
+    <div class="result-actions"><button class="primary" id="copy">Copy result <span aria-hidden="true">→</span></button><button class="quiet" id="replay">Play again</button></div>
+    <textarea id="share" aria-label="Shareable result" readonly hidden></textarea><p id="copyStatus" role="status"></p>
+  </div>
+</section>
+</main>
+<footer><span>BUILT WORLD / PLAYTEST</span><span>EDITOR-ASSIGNED RARITY</span></footer>
+</div>
+</body></html>
