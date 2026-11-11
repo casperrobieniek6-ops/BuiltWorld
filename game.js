@@ -164,9 +164,9 @@ const curatedRounds = [
     bands: [5, 16]
   },
   {
-    label: "Urban planning",
-    prompt: "Name a planned town or major planned housing development built after World War II.",
-    rule: "Purpose-built towns, districts, and housing developments count worldwide. Give the place name.",
+    label: "Planned housing & towns",
+    prompt: "Name a planned community or major housing development.",
+    rule: "Any era and country count. Planned towns, public housing, garden apartments, and private estates all qualify. Use the development’s name or a common nickname.",
     answers: [
       "Levittown|Levittown New York|Levittown NY|Levittown Long Island",
       "Brasília|Brasilia", "Co-op City|Coop City|Co op City",
@@ -247,7 +247,7 @@ const curatedRounds = [
       "Twin Rivers, New Jersey|Twin Rivers NJ|Twin Rivers",
       "Levittown, Pennsylvania|Levittown PA|Levittown Pennsylvania",
       "Willingboro|Levittown New Jersey|Levittown NJ", "Levittown, Puerto Rico|Levittown PR",
-      "Park La Brea", "Penn South|Mutual Redevelopment Houses", "Rochdale Village",
+      "Park La Brea|Park Labrea|Park La Brea Apartments|Park La Brea Gardens|Park La Brea Los Angeles|Park La Brea LA", "Penn South|Mutual Redevelopment Houses", "Rochdale Village",
       "Starrett City|Spring Creek Towers", "LeFrak City|Lefrak City",
       "Trump Village",
       "Pruitt–Igoe|Pruitt Igoe", "Cabrini–Green|Cabrini Green", "Robert Taylor Homes",
@@ -325,6 +325,14 @@ const placeBanks = window.builtWorldPlaces?.banks ?? {};
 const railTopics = ["high-speed", "shinkansen", "tgv", "acela"];
 const cityTopics = Object.keys(editorial).filter(id => !railTopics.includes(id));
 Object.assign(banks, content.banks, editorial, placeBanks);
+const housing = window.builtWorldHousing ?? [];
+const plannedNames = new Set(banks.planning.answers.map(answer => normalize(answer.split("|")[0])));
+banks.planning = {
+  ...banks.planning,
+  source: "https://data.cityofnewyork.us/Housing-Development/NYCHA-Development-Data-Book/evjd-dqpz",
+  sourceLabel: "NYCHA Development Data Book",
+  answers: [...banks.planning.answers, ...housing.filter(([name]) => !plannedNames.has(normalize(name)))]
+};
 const calendar = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit"
 });
@@ -357,9 +365,24 @@ function dailyIds(date) {
   return content.dates[date]?.rounds ?? (banks[largeBank] ? rotation : curatedIds);
 }
 
+const optionalSuffix = {
+  planning: /(?:housingdevelopments?|housingprojects?|apartmentdevelopments?|apartmentcomplex(?:es)?|housingestates?|gardenapartments?|publichousing|apartments?|houses|homes|projects)$/,
+  homes: /(?:style|house|home|dwelling)s?$/,
+  airports: /(?:internationalairport|airport)$/,
+  rail: /(?:railwaystation|trainstation|station)$/,
+  "amtrak-stations": /(?:railwaystation|trainstation|station)$/,
+  "rail-stations": /(?:railwaystation|trainstation|station)$/,
+  "bridges-world": /bridge$/
+};
+
+function friendlyKey(id, key) {
+  const trimmed = optionalSuffix[id] ? key.replace(optionalSuffix[id], "") : key;
+  return trimmed.length >= 4 ? trimmed : key;
+}
+
 function prepareBank(id) {
   if (preparedBanks.has(id)) return preparedBanks.get(id);
-  const round = { ...banks[id], id, lookup: new Map(), byLength: new Map(), ambiguous: new Set() };
+  const round = { ...banks[id], id, lookup: new Map(), byLength: new Map(), ambiguous: new Set(), friendly: new Map() };
   round.entries = round.answers.map((answer, index) => {
     const [name, aliases, points, evidence] = Array.isArray(answer)
       ? answer
@@ -367,6 +390,14 @@ function prepareBank(id) {
     const searchKeys = [...new Set([name, ...aliases].map(normalize))].filter(Boolean);
     const entry = { name, points, evidence, searchKeys };
     for (const key of searchKeys) {
+      if (optionalSuffix[id]) {
+        const friendly = friendlyKey(id, key);
+        if (round.friendly.has(friendly) && round.friendly.get(friendly) !== entry) {
+          round.friendly.set(friendly, null);
+        } else {
+          round.friendly.set(friendly, entry);
+        }
+      }
       if (round.ambiguous.has(key)) continue;
       if (round.lookup.has(key)) {
         round.lookup.delete(key);
@@ -426,10 +457,15 @@ function spellingDistance(input, alias) {
 
 function matchAnswer(round, key) {
   if (round.ambiguous.has(key)) return { ambiguous: true };
-  const exact = round.lookup.get(key) || (
-    round.id === "homes" && round.lookup.get(key.replace(/(?:style|house|home|dwelling)s?$/, ""))
-  );
+  const exact = round.lookup.get(key);
   if (exact) return { entry: exact, corrected: false };
+
+  if (optionalSuffix[round.id]) {
+    const shorter = friendlyKey(round.id, key);
+    const match = round.friendly.get(shorter);
+    if (match) return { entry: match, corrected: false };
+    if (match === null) return { ambiguous: true };
+  }
   if (key.length < 5) return {};
 
   let distanceLimit = key.length >= 10 ? 2 : 1;
@@ -731,16 +767,22 @@ $("form").addEventListener("submit", event => {
   const input = $("guess");
   const guess = input.value.trim();
   const key = normalize(guess);
+  const withoutArticle = normalize(guess.replace(/^the\s+/i, ""));
   if (!key) return;
   input.value = "";
   input.focus();
-  const { entry, corrected, ambiguous } = matchAnswer(rounds[roundIndex], key);
+  const round = rounds[roundIndex];
+  const preferredKey = !round.lookup.has(key) && !round.ambiguous.has(key) && withoutArticle ? withoutArticle : key;
+  const { entry, corrected, ambiguous } = matchAnswer(round, preferredKey);
   const result = run[roundIndex];
   $("feedback").dataset.tone = "neutral";
   if (!entry) {
     gameAudio.play("miss");
     result.unmatched.set(key, { guess, ambiguous });
-    $("feedback").textContent = ambiguous ? "That matches more than one place. Try a fuller name or code." : "No match in this answer bank. You can flag it after the round.";
+    const genericHousing = round.id === "planning" && /^(?:(?:garden|gardens|gardenapartments|housingprojects?)(?:(?:in)?(?:la|losangeles|nyc|newyork))?|projects)$/.test(preferredKey);
+    $("feedback").textContent = genericHousing ? "Several developments fit that description. Try the name or its distinctive first word."
+      : ambiguous ? "That matches more than one answer. Try a fuller name or code."
+      : "No match in this answer bank. You can flag it after the round.";
     return;
   }
   if (result.found.has(entry)) {
