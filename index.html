@@ -8,6 +8,7 @@
 <title>Built World</title>
 <link rel="stylesheet" href="style.css">
 <script defer src="audio.js"></script>
+<script defer src="daily-content.js"></script>
 <script defer src="game.js"></script>
 <script type="module" src="globe.mjs"></script>
 </head>
@@ -20,14 +21,14 @@
 <main>
 <section id="intro" class="cover">
   <div class="cover-copy">
-    <p class="eyebrow"><span class="dot"></span> EDITION 001</p>
+    <p class="eyebrow"><span class="dot"></span> <span id="edition-day"></span></p>
     <h1>Built<br><em>World<span>.</span></em></h1>
     <p class="subtitle">How well do you know the world we built?</p>
     <p class="instructions">Type as many answers as you can. One clears the round. Obscure finds score more.</p>
     <button class="primary" id="start">Start game <span aria-hidden="true">→</span></button>
   </div>
-  <div class="cover-visual"><div id="intro-route"></div><div class="photo-slot cover-photo" aria-label="Cover photo slot">COVER PHOTO SLOT · GOLDEN GATE</div></div>
-  <div class="cover-strip"><span>5 ROUNDS</span><span>45 SECONDS EACH</span><span>ARCHITECTURE · INFRASTRUCTURE · PLANNING</span></div>
+  <div class="cover-visual"><div id="intro-route"></div><div id="cover-photo" class="photo-slot cover-photo" aria-label="Cover photo slot">COVER PHOTO SLOT · GOLDEN GATE</div></div>
+  <div class="cover-strip"><span>5 ROUNDS</span><span>45 SECONDS EACH</span><span id="answer-count"></span></div>
 </section>
 <section class="game" id="game" hidden>
   <div class="round-banner" id="round-art"><div id="round-photo" class="photo-slot" aria-label="Photo slot"></div><div class="roundhead"><p class="eyebrow" id="round"></p><span class="timer" id="timer"></span></div><div class="track" aria-hidden="true"><div id="bar"></div></div></div>
@@ -35,6 +36,7 @@
     <div class="play">
       <h1 class="prompt" id="prompt" tabindex="-1"></h1>
       <p class="rule" id="rule"></p>
+      <a class="round-source" id="round-source" target="_blank" rel="noopener" hidden></a>
       <button class="primary" id="begin-round" hidden>Start timer <span aria-hidden="true">→</span></button>
       <form id="form"><label class="sr" for="guess">Your answer</label><input id="guess" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type an answer…"><button class="primary" id="submit">Add <span aria-hidden="true">↵</span></button></form>
       <p id="feedback" role="status"></p>
@@ -45,7 +47,7 @@
   </div>
 </section>
 <section class="results" id="results" hidden>
-  <div class="results-top"><p class="eyebrow">EDITION 001 / RESULTS</p><h1 tabindex="-1" id="resultsTitle">Your run<span>.</span></h1></div>
+  <div class="results-top"><p class="eyebrow" id="results-day"></p><h1 tabindex="-1" id="resultsTitle">Your run<span>.</span></h1></div>
   <div class="results-grid"><div id="results-route"></div><div class="results-body"><div class="stats" id="stats"></div><div id="review"></div>
     <div class="result-actions"><button class="primary" id="copy">Copy result <span aria-hidden="true">→</span></button><button class="quiet" id="replay">Play again</button></div>
     <textarea id="share" aria-label="Shareable result" readonly hidden></textarea><p id="copyStatus" role="status"></p>
@@ -54,10 +56,17 @@
 <section class="route" id="route" aria-label="Expedition progress">
   <div class="route-head"><span>EARTH ROUTE</span><span id="route-points">0 PTS</span></div>
   <div id="earth-view" aria-hidden="true"><div class="earth-fallback"></div></div>
-  <div class="route-current"><span id="route-location">Five stops</span><span id="route-coordinates">EDITION 001</span></div>
+  <div class="route-current"><span id="route-location">Five stops</span><span id="route-coordinates"></span></div>
   <ol id="route-stops" aria-label="Round status"></ol>
 </section>
 </main>
-<footer><span>BUILT WORLD / PLAYTEST</span><span>EDITOR-ASSIGNED RARITY</span></footer>
+<footer class="site-footer">
+  <div class="footer-meta"><span>BUILT WORLD / PLAYTEST</span><span>DAILY RESET · MIDNIGHT EASTERN</span></div>
+  <div class="footer-links">
+    <section aria-label="Game links"><h2>Game</h2><ul><li>Archive</li><li>Donate</li><li>Support</li><li>Feedback</li></ul></section>
+    <section aria-label="Release links"><h2>Release</h2><ul><li>Privacy</li><li>Terms</li><li>Accessibility</li><li>Licensing and credits</li></ul></section>
+    <section aria-label="Data sources"><h2>Data sources</h2><ul><li><a href="https://ourairports.com/data/">OurAirports</a></li><li><a href="https://dataportal.orr.gov.uk/station-usage">Office of Rail and Road</a></li><li><a href="https://github.com/topojson/world-atlas">Natural Earth via World Atlas</a></li></ul></section>
+  </div>
+</footer>
 </div>
 </body></html>

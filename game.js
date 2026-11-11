@@ -1,7 +1,7 @@
 "use strict";
 
 const roundSeconds = 45;
-const rounds = [
+const curatedRounds = [
   {
     label: "Residential architecture",
     prompt: "Name a style or type of home used in North America.",
@@ -315,15 +315,40 @@ function normalize(value) {
   return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+const curatedIds = ["homes", "tunnels", "stormwater", "planning", "bridges"];
+const content = window.builtWorldContent ?? { banks: {}, dates: {} };
+const banks = Object.fromEntries(curatedRounds.map((round, index) => [curatedIds[index], round]));
+Object.assign(banks, content.banks);
+const calendar = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit"
+});
+const dateParts = Object.fromEntries(calendar.formatToParts().map(({ type, value }) => [type, value]));
+const editionDate = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+const dayNumber = Date.parse(editionDate) / 86400000;
+const datedEdition = content.dates[editionDate];
+const rotation = curatedIds.filter((_, index) => index !== dayNumber % curatedIds.length);
+const largeBank = ["airports", "rail"][dayNumber % 2];
+rotation.splice(dayNumber % 4, 0, largeBank);
+const roundIds = datedEdition?.rounds ?? (banks[largeBank] ? rotation : curatedIds);
+const rounds = roundIds.map(id => ({ ...banks[id], id }));
+const photos = datedEdition?.photos ?? {};
+
 for (const round of rounds) {
   round.lookup = new Map();
   round.entries = round.answers.map((answer, index) => {
-    const aliases = answer.split("|");
-    const points = index < round.bands[0] ? 10 : index < round.bands[1] ? 20 : 40;
-    const entry = { name: aliases[0], points };
-    for (const alias of aliases) round.lookup.set(normalize(alias), entry);
+    const [name, aliases, points] = Array.isArray(answer)
+      ? answer
+      : [answer.split("|")[0], answer.split("|").slice(1), index < round.bands[0] ? 10 : index < round.bands[1] ? 20 : 40];
+    const entry = { name, points };
+    for (const alias of [name, ...aliases]) round.lookup.set(normalize(alias), entry);
     return entry;
   });
+  round.byLength = new Map();
+  for (const [alias, entry] of round.lookup) {
+    if (alias.length < 5) continue;
+    if (!round.byLength.has(alias.length)) round.byLength.set(alias.length, []);
+    round.byLength.get(alias.length).push([alias, entry]);
+  }
 }
 
 // Optimal string alignment treats an adjacent letter swap as one typo.
@@ -347,22 +372,25 @@ function spellingDistance(input, alias) {
 
 function matchAnswer(round, key) {
   const exact = round.lookup.get(key) || (
-    round === rounds[0] && round.lookup.get(key.replace(/(?:style|house|home|dwelling)s?$/, ""))
+    round.id === "homes" && round.lookup.get(key.replace(/(?:style|house|home|dwelling)s?$/, ""))
   );
   if (exact) return { entry: exact, corrected: false };
   if (key.length < 5) return {};
 
   let distanceLimit = key.length >= 10 ? 2 : 1;
   let best = new Set();
-  for (const [alias, entry] of round.lookup) {
-    if (alias.length < 5 || Math.abs(alias.length - key.length) > distanceLimit) continue;
-    const distance = spellingDistance(key, alias);
-    if (distance > distanceLimit || (distance === 2 && alias.length < 10)) continue;
-    if (distance < distanceLimit) {
-      best = new Set();
-      distanceLimit = distance;
+  const maxLength = key.length + distanceLimit;
+  for (let length = Math.max(5, key.length - distanceLimit); length <= maxLength; length += 1) {
+    if (Math.abs(length - key.length) > distanceLimit) continue;
+    for (const [alias, entry] of round.byLength.get(length) ?? []) {
+      const distance = spellingDistance(key, alias);
+      if (distance > distanceLimit || (distance === 2 && alias.length < 10)) continue;
+      if (distance < distanceLimit) {
+        best = new Set();
+        distanceLimit = distance;
+      }
+      best.add(entry);
     }
-    best.add(entry);
   }
   if (best.size === 1) return { entry: best.values().next().value, corrected: true };
   return { ambiguous: best.size > 1 };
@@ -374,7 +402,6 @@ let deadline = 0;
 let timerId;
 let active = false;
 let lastSecond = roundSeconds;
-const photoLabels = ["Residential architecture", "Underwater road crossing", "Stormwater infrastructure", "Planned housing", "Bridge engineering"];
 const routeStops = [
   ["Chicago", "41.88° N · 87.63° W"],
   ["Lisbon", "38.72° N · 9.14° W"],
@@ -383,6 +410,26 @@ const routeStops = [
   ["San Francisco", "37.77° N · 122.42° W"]
 ];
 let run = [];
+
+function showPhoto(element, slot, label) {
+  const photo = photos[slot];
+  element.classList.remove("has-photo");
+  element.textContent = `PHOTO SLOT · ${label.toUpperCase()}`;
+  element.dataset.slot = slot;
+  if (!photo) return;
+
+  const image = new Image();
+  image.alt = photo.alt;
+  image.onload = () => {
+    if (element.dataset.slot !== slot) return;
+    const credit = document.createElement("span");
+    credit.className = "photo-credit";
+    credit.textContent = photo.credit;
+    element.replaceChildren(image, credit);
+    element.classList.add("has-photo");
+  };
+  image.src = photo.file;
+}
 
 function updateRoute(phase, cue) {
   const cleared = run.map(result => result.found.size > 0);
@@ -394,7 +441,7 @@ function updateRoute(phase, cue) {
   $("route-points").textContent = `${points} PTS`;
   const overview = phase === "intro" || phase === "results";
   $("route-location").textContent = phase === "intro" ? "Five stops" : phase === "results" ? "Route complete" : routeStops[index][0];
-  $("route-coordinates").textContent = overview ? "EDITION 001" : routeStops[index][1];
+  $("route-coordinates").textContent = overview ? editionDate : routeStops[index][1];
   $("route-stops").replaceChildren(...routeStops.map(([name], number) => {
     const stop = document.createElement("li");
     const current = !overview && number === index;
@@ -419,7 +466,12 @@ function prepareRound() {
   $("rule").textContent = round.rule;
   $("feedback").textContent = "";
   $("feedback").dataset.tone = "neutral";
-  $("round-photo").textContent = `PHOTO SLOT · ${photoLabels[roundIndex].toUpperCase()}`;
+  showPhoto($("round-photo"), round.id, round.label);
+  $("round-source").hidden = !round.source;
+  if (round.source) {
+    $("round-source").href = round.source;
+    $("round-source").textContent = round.sourceLabel;
+  }
   $("round-art").classList.remove("urgent");
   lastSecond = roundSeconds;
   $("guess").value = "";
@@ -555,7 +607,7 @@ function showResults() {
     return row;
   }));
   const marks = run.map(result => result.found.size ? "■" : "□").join(" ");
-  $("share").value = `Built World #001 · ${cleared}/${rounds.length} cleared · ${answers} found · ${points} points\n${marks}`;
+  $("share").value = `Built World ${editionDate} · ${cleared}/${rounds.length} cleared · ${answers} found · ${points} points\n${marks}`;
   $("share").hidden = true;
   $("copyStatus").textContent = "";
   $("game").hidden = true;
@@ -575,6 +627,10 @@ function startGame() {
   prepareRound();
 }
 
+$("edition-day").textContent = `DAILY / ${editionDate}`;
+$("results-day").textContent = `DAILY / ${editionDate} / RESULTS`;
+$("answer-count").textContent = `${rounds.reduce((total, round) => total + round.entries.length, 0).toLocaleString("en-US")} ACCEPTED ANSWERS TODAY`;
+showPhoto($("cover-photo"), "cover", "Golden Gate");
 $("intro-route").append($("route"));
 updateRoute("intro");
 $("start").addEventListener("click", startGame);

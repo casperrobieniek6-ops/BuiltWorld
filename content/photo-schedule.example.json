@@ -1,0 +1,16 @@
+{
+  "dates": {
+    "2026-11-11": {
+      "rounds": ["airports", "homes", "tunnels", "stormwater", "bridges"],
+      "photos": {
+        "cover": {
+          "assetId": "169047848",
+          "file": "photos/2026-11-11/cover.webp",
+          "alt": "Golden Gate Bridge spanning San Francisco Bay",
+          "credit": "Replace with the confirmed Adobe Stock credit",
+          "licensed": false
+        }
+      }
+    }
+  }
+}

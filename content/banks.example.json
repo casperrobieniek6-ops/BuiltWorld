@@ -1,0 +1,10 @@
+{
+  "nyc-crossings": {
+    "label": "New York crossings",
+    "prompt": "Name a bridge that carries traffic into Manhattan.",
+    "rule": "Name the crossing.",
+    "source": "https://www.nyc.gov/html/dot/html/infrastructure/bridges.shtml",
+    "sourceLabel": "NYC Department of Transportation",
+    "photoSearch": "Manhattan road bridge aerial East River"
+  }
+}
