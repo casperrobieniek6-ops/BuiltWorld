@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#121a2b">
+<meta name="theme-color" content="#201d16">
 <meta name="description" content="A rapid-fire quiz about the things people build.">
 <title>Built World</title>
 <link rel="stylesheet" href="style.css">
 <script defer src="audio.js"></script>
 <script defer src="daily-content.js"></script>
+<script defer src="editorial-banks.js"></script>
 <script defer src="game.js"></script>
 <script type="module" src="train.mjs"></script>
 </head>
@@ -58,7 +59,7 @@
 </section>
 <section class="route" id="route" aria-label="Rail journey progress">
   <div class="route-head"><span>NORTHBOUND LINE</span><span id="route-points">0 PTS</span></div>
-  <div class="train-window"><div id="train-view" aria-hidden="true"></div><span id="train-speed" aria-hidden="true">AT STATION</span><span id="train-service" aria-live="polite">Heritage diesel</span></div>
+  <div class="train-window"><div id="train-view" aria-hidden="true"></div><span id="train-speed" aria-hidden="true">AT STATION</span><span id="train-service" aria-live="polite">Heritage diesel</span><span id="train-next"></span></div>
   <div class="route-current"><span id="route-location">Five stops</span><span id="route-coordinates"></span></div>
   <ol id="route-stops" aria-label="Round status"></ol>
 </section>

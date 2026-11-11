@@ -318,7 +318,10 @@ function normalize(value) {
 const curatedIds = ["homes", "tunnels", "stormwater", "planning", "bridges"];
 const content = window.builtWorldContent ?? { banks: {}, dates: {} };
 const banks = Object.fromEntries(curatedRounds.map((round, index) => [curatedIds[index], round]));
-Object.assign(banks, content.banks);
+const editorial = window.builtWorldEditorial ?? {};
+const railTopics = ["high-speed", "shinkansen", "tgv", "acela"];
+const cityTopics = Object.keys(editorial).filter(id => !railTopics.includes(id));
+Object.assign(banks, content.banks, editorial);
 const calendar = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit"
 });
@@ -332,7 +335,10 @@ const preparedBanks = new Map();
 
 function dailyIds(date) {
   const dayNumber = Date.parse(date) / 86400000;
-  const rotation = curatedIds.filter((_, index) => index !== dayNumber % curatedIds.length);
+  const rotation = date >= "2026-11-11" && cityTopics.length
+    ? [curatedIds[dayNumber % curatedIds.length], curatedIds[(dayNumber + 2) % curatedIds.length],
+       railTopics[dayNumber % railTopics.length], cityTopics[(dayNumber + Math.floor(dayNumber / 4)) % cityTopics.length]]
+    : curatedIds.filter((_, index) => index !== dayNumber % curatedIds.length);
   const largeBank = ["airports", "rail"][dayNumber % 2];
   rotation.splice(dayNumber % 4, 0, largeBank);
   return content.dates[date]?.rounds ?? (banks[largeBank] ? rotation : curatedIds);

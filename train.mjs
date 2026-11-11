@@ -6,10 +6,10 @@ const speed = document.querySelector("#train-speed");
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const stationX = [0, 25, 50, 75, 100];
 const palette = {
-  ground: "#456779", edge: "#253b55", grass: "#385c63", water: "#527d9f",
-  road: "#38475c", pavement: "#71859a", platform: "#93adbd", rail: "#d4dae1",
-  mint: "#ccffa4", silver: "#e2eef3", blue: "#243e59", glass: "#547a9f",
-  amber: "#ffd09b", coral: "#f6a589", pine: "#325e62"
+  ground: "#62634b", edge: "#333a2d", grass: "#555d3e", water: "#527879",
+  road: "#555247", pavement: "#aa9b7f", platform: "#c8bda0", rail: "#ccc5b2",
+  mint: "#e6c382", silver: "#e9e2ce", blue: "#354448", glass: "#647c76",
+  amber: "#ffd196", coral: "#fa9c74", pine: "#4c6344"
 };
 const terrain = [];
 const cities = stationX.map(() => []);
@@ -50,16 +50,16 @@ function building(list, x, z, w, d, height, color, house) {
   box(list, x, z, w, d, 0, height, color);
   if (house) {
     const left = [x, height + .48, z + d / 2], right = [x + w, height + .48, z + d / 2];
-    polygon(list, "#d58d81", [[x, height, z + d], left, right, [x + w, height, z + d]]);
-    polygon(list, "#9c6471", [[x + w, height, z], right, left, [x, height, z]]);
-    polygon(list, "#bd7c78", [[x + w, height, z + d], right, [x + w, height, z]]);
+    polygon(list, "#ae7053", [[x, height, z + d], left, right, [x + w, height, z + d]]);
+    polygon(list, "#8b553f", [[x + w, height, z], right, left, [x, height, z]]);
+    polygon(list, "#9d6348", [[x + w, height, z + d], right, [x + w, height, z]]);
   } else {
     box(list, x + w * .18, z + d * .14, w * .51, d * .37, height, .22, tint(color, .76));
   }
   for (let floor = .38; floor < height - .12; floor += .57) {
     for (let col = .24; col < w - .16; col += .48) {
       const left = x + col, bottom = floor, front = z + d + .008;
-      polygon(list, (Math.floor(col * 10 + floor * 10 + x) % 4 === 0) ? palette.amber : "#6e8aa6",
+      polygon(list, (Math.floor(col * 10 + floor * 10 + x) % 4 === 0) ? palette.amber : "#85948a",
         [[left, bottom, front], [left + .19, bottom, front], [left + .19, bottom + .18, front], [left, bottom + .18, front]]);
     }
   }
@@ -75,27 +75,27 @@ function makeTerrain() {
   slab(terrain, -52, -26, 207, 44, -.36, palette.ground);
   slab(terrain, -52, -25, 207, 10, -.34, palette.grass);
   for (let x = -45; x < 150; x += 7.2) {
-    const shade = ["#496c75", "#4f707a", "#426574", "#496773"][Math.abs(Math.round(x * 2)) % 4];
+    const shade = ["#747653", "#7d7654", "#656b4c", "#6d704b"][Math.abs(Math.round(x * 2)) % 4];
     slab(terrain, x, 4.0, 6.94, 4.4, -.345, shade);
     slab(terrain, x + .15, 8.78, 6.62, 5.8, -.345, shade);
-    slab(terrain, x, 3.08, 7.2, .21, -.317, "#668095");
+    slab(terrain, x, 3.08, 7.2, .21, -.317, "#887e63");
     for (let strip = 0; strip < 4; strip += 1) {
-      slab(terrain, x + .4 + strip * 1.4, 9.08, .055, 4.99, -.333, "#557684");
+      slab(terrain, x + .4 + strip * 1.4, 9.08, .055, 4.99, -.333, "#918661");
     }
   }
   for (const [x, width] of [[11, 5.2], [33, 3.2], [82, 5]]) {
     slab(terrain, x, -26, width, 44, -.31, palette.water);
-    for (let i = 0; i < 7; i += 1) slab(terrain, x + .4 + i % 3 * .45, -24 + i * 5.4, width * .49, .055, -.303, "#6a91ac");
+    for (let i = 0; i < 7; i += 1) slab(terrain, x + .4 + i % 3 * .45, -24 + i * 5.4, width * .49, .055, -.303, "#739a93");
   }
-  slab(terrain, -52, -1.12, 207, 2.24, -.13, "#283c55");
-  for (let i = -50; i < 154; i += .75) slab(terrain, i, -.89, .12, 1.78, -.095, "#526a80");
+  slab(terrain, -52, -1.12, 207, 2.24, -.13, "#54493d");
+  for (let i = -50; i < 154; i += .75) slab(terrain, i, -.89, .12, 1.78, -.095, "#756754");
   for (const z of [-.54, .54]) slab(terrain, -52, z, 207, .059, -.051, palette.rail);
   for (const [x, width] of [[11, 5.2], [33, 3.2], [82, 5]]) {
     for (const z of [-1.07, 1.02]) {
       for (let offset = .2; offset < width - .15; offset += .72) {
-        box(terrain, x + offset, z, .09, .08, -.11, .37, "#91a9c1");
+        box(terrain, x + offset, z, .09, .08, -.11, .37, "#a7947a");
       }
-      box(terrain, x, z, width, .055, .22, .055, "#a8b9ce");
+      box(terrain, x, z, width, .055, .22, .055, "#c1af90");
     }
   }
   for (let i = 0; i < 102; i += 1) {
@@ -112,7 +112,8 @@ function makeTerrain() {
 
 function makeCity(center, index) {
   const list = cities[index];
-  const town = index === 0 || index === 2;
+  const town = index < 2;
+  const modern = index >= 3;
   const density = [3, 4, 4, 6, 7][index];
   for (const offset of [-4.45, -.9, 2.65]) {
     slab(list, center - 7.1, offset - 8.3, 14.2, .39, -.09, palette.road);
@@ -120,20 +121,46 @@ function makeCity(center, index) {
   for (const offset of [-5.4, -.1, 5.2]) {
     slab(list, center + offset, -15, .42, 12, -.08, palette.road);
   }
+  // Station square, sidewalks, and a main street facing the platforms.
+  slab(list, center - 7.1, -5.43, 14.2, 2.55, -.068, modern ? "#a49f89" : "#9a8368");
+  slab(list, center - 7.1, -5.10, 14.2, .72, -.059, palette.road);
+  for (let i = 0; i < 12; i += 1) {
+    const x = center - 6.9 + i * 1.2;
+    slab(list, x, -4.79, .53, .027, -.047, "#b9a886");
+    slab(list, x, -3.19, .58, .04, -.044, "#b9a886");
+  }
+  for (const x of [center - 5.2, center + 4.7]) {
+    for (let step = 0; step < 5; step += 1) slab(list, x, -5.04 + step * .115, .46, .049, -.043, "#d8c7a2");
+  }
   slab(list, center - 4.8, -2.42, 9.6, 1.24, -.036, palette.platform, 1);
   slab(list, center - 4.8, -1.27, 9.6, .09, -.026, palette.amber, 1);
-  building(list, center - 1.8, -4.05, 3.6, 1.36, .64, "#c0d1db", false);
-  box(list, center - 2.55, -2.05, 5.1, .56, .57, .12, "#7facc3");
+  building(list, center - 1.8, -4.05, 3.6, 1.36, modern ? 1.08 : .77, modern ? "#c5c2af" : "#b58768", !modern);
+  box(list, center - 2.55, -2.05, modern ? 6.2 : 5.1, modern ? .83 : .56, modern ? .75 : .57, .12, modern ? "#a1ada1" : "#785a42");
+  if (!modern) {
+    box(list, center - .22, -3.81, .44, .42, .76, .72, "#b58768");
+    box(list, center - .28, -3.87, .56, .54, 1.47, .11, "#81533b");
+  }
   for (const x of [-2.2, 0, 2.2]) box(list, center + x, -1.99, .065, .065, 0, .57, palette.silver);
-  const facades = ["#a5bdd3", "#819fbd", "#b59caf", "#6a8eaf", "#cfaaa4", "#a2b0c3"];
+  const facades = modern
+    ? ["#b2b8a8", "#8d9a90", "#b8a383", "#80918b", "#b48e70", "#acb0a0"]
+    : ["#c59d77", "#b88163", "#d2b48e", "#9c765f", "#b89b70", "#c39a78"];
+  const awnings = ["#80533e", "#52694a", "#aa7653", "#806b45"];
   for (let row = 0; row < (town ? 2 : 3); row += 1) {
     for (let col = 0; col < density; col += 1) {
       const seed = col * 13 + row * 7 + index * 11;
       const x = center - 6.2 + col * 12.4 / density + (row % 2) * .22;
-      const z = -5.1 - row * 3.25 - (seed % 3) * .15;
-      const height = town ? .65 + (seed % 3) * .19 : 1.05 + (seed % 10) * (index === 1 ? .27 : .49);
-      building(list, x, z, town ? 1.27 : 1.37 + seed % 4 * .16, town ? 1.1 : 1.34 + seed % 3 * .25, height, facades[seed % facades.length], town);
-      if (seed % 2 === 0) tree(list, x + 1.66, z + .7, .9);
+      const z = -6.63 - row * 3.02 - (seed % 3) * .11;
+      const height = town ? .78 + (seed % 3) * .24 : 1.55 + (seed % 10) * (modern ? .51 : .24);
+      const width = town ? 1.45 + (seed % 3) * .16 : 1.37 + seed % 4 * .17;
+      const depth = town ? 1.23 : 1.34 + seed % 3 * .25;
+      building(list, x, z, width, depth, height, facades[seed % facades.length], town && (row !== 0 || index === 0));
+      if (row === 0) {
+        const front = z + depth + .012;
+        box(list, x + .09, front, width - .18, .023, .04, .37, modern ? "#61746d" : "#6b5744");
+        box(list, x + .05, front, width - .10, modern ? .17 : .30, .43, .069, awnings[col % awnings.length]);
+        for (const dx of [.23, width * .55]) box(list, x + dx, front + .027, .24, .013, .12, .15, "#d7ba81");
+      }
+      if (seed % 2 === 0) tree(list, x + width + .19, z + .7, .9);
     }
   }
   if (index === 3 || index === 4) {
@@ -142,21 +169,26 @@ function makeCity(center, index) {
     box(list, x + .76, z + .72, .065, .065, 6.5, .9, "#e1c6c9");
   }
   if (index === 4) {
-    building(list, center - 1.6, -10.1, 4.5, 2.1, 1.8, "#dccabd", false);
-    box(list, center + .2, -9.38, .9, .75, 1.8, .75, "#e5d7c4");
+    building(list, center - 1.6, -10.1, 4.5, 2.1, 1.8, "#c1a98a", false);
+    box(list, center + .2, -9.38, .9, .75, 1.8, .75, "#dfccb0");
+    for (let i = 0; i < 5; i += 1) box(list, center - 3.9 + i * 1.65, -2.11, .075, .075, 0, 1.02, "#a3a18a");
+    box(list, center - 4.1, -2.35, 7.2, .90, .98, .12, "#9aa99e");
   }
 }
 
 const fleet = [
-  { name: "Heritage diesel", threshold: 0, body: "#cfb586", stripe: "#944b45", roof: "#3e4c58", cars: 3 },
-  { name: "Regional express", threshold: 30, body: "#d6c9ac", stripe: "#1f747a", roof: "#6f8289", cars: 3 },
-  { name: "Intercity electric", threshold: 75, body: "#cfdae9", stripe: "#496db5", roof: "#869eb5", cars: 4 },
-  { name: "High-speed express", threshold: 150, body: "#e9f4f6", stripe: "#93e68e", roof: "#aac4d5", cars: 4 }
+  { name: "Heritage diesel", threshold: 0, speed: 95, body: "#cfb586", stripe: "#944b45", roof: "#3e4c48", cars: 3, length: 1.85, nose: 0 },
+  { name: "Regional railcar", threshold: 25, speed: 130, body: "#d2c3a3", stripe: "#4f775d", roof: "#757867", cars: 3, length: 1.78, nose: 0 },
+  { name: "0 Series Shinkansen", threshold: 55, speed: 210, body: "#efe4c8", stripe: "#385b88", roof: "#c7c6b1", cars: 4, length: 2.0, nose: .61 },
+  { name: "TGV Sud-Est", threshold: 90, speed: 270, body: "#ce753c", stripe: "#eee0b8", roof: "#b6663b", cars: 4, length: 2.08, nose: .64 },
+  { name: "Acela", threshold: 125, speed: 250, body: "#cbd2cd", stripe: "#2c6080", roof: "#a8b0a9", cars: 4, length: 2.10, nose: .78 },
+  { name: "ICE 3", threshold: 165, speed: 300, body: "#e6e5d7", stripe: "#a83e39", roof: "#c3c4b6", cars: 4, length: 2.16, nose: .83 },
+  { name: "N700S Shinkansen", threshold: 205, speed: 300, body: "#e8e6d8", stripe: "#315886", roof: "#c5c9c2", cars: 4, length: 2.20, nose: 1.13 }
 ];
 
 function train(list, x, tier, glow) {
   const set = fleet[tier];
-  const length = tier > 1 ? 2.26 : 1.88;
+  const length = set.length;
   const step = length + .12;
   for (let car = 0; car < set.cars; car += 1) {
     const start = x - length - car * step;
@@ -174,17 +206,29 @@ function train(list, x, tier, glow) {
   const tail = x - length - (set.cars - 1) * step;
   box(list, tail - .019, -.34, .026, .68, .35, .18, palette.blue);
   for (const z of [-.33, .26]) box(list, tail - .04, z, .03, .075, .20, .075, "#ff7a70");
-  if (tier < 2) {
+  if (!set.nose) {
     box(list, x - .51, -.47, .34, .94, .70, .24, set.body);
     box(list, x - .15, -.32, .021, .64, .73, .15, palette.blue);
     box(list, x - 1.05, -.15, .20, .29, .78, .10, set.roof);
   } else {
-    const nose = x + (tier === 3 ? .91 : .58);
+    const nose = x + set.nose;
     polygon(list, set.body, [[x, .69, -.49], [x, .69, .49], [nose, .19, .27], [nose, .19, -.27]]);
-    polygon(list, "#b1cedf", [[x, .07, .49], [nose, .08, .27], [nose, .19, .27], [x, .69, .49]]);
-    polygon(list, "#bed7e9", [[x, .69, -.49], [nose, .19, -.27], [nose, .08, -.27], [x, .07, -.49]]);
-    polygon(list, "#eff9df", [[nose, .08, -.27], [nose, .19, -.27], [nose, .19, .27], [nose, .08, .27]]);
+    polygon(list, tint(set.body, .78), [[x, .07, .49], [nose, .08, .27], [nose, .19, .27], [x, .69, .49]]);
+    polygon(list, tint(set.body, .86), [[x, .69, -.49], [nose, .19, -.27], [nose, .08, -.27], [x, .07, -.49]]);
+    polygon(list, "#e7d9a7", [[nose, .08, -.27], [nose, .19, -.27], [nose, .19, .27], [nose, .08, .27]]);
     polygon(list, palette.blue, [[x + .07, .66, -.39], [x + .07, .66, .39], [x + .29, .535, .33], [x + .29, .535, -.33]]);
+  }
+  if (tier === 3 || tier === 4 || tier === 5) {
+    const roofX = x - (tier === 3 ? .82 : 3.1);
+    polygon(list, "#5b5850", [[roofX - .36, .78, -.13], [roofX + .18, 1.10, -.13], [roofX + .39, 1.10, -.13], [roofX - .25, .78, -.13]]);
+    box(list, roofX + .15, -.15, .27, .31, 1.09, .05, "#6a6659");
+  }
+  if (tier === 3) {
+    box(list, x - .43, -.45, .22, .9, .79, .065, "#663d2e");
+  }
+  if (tier === 2 || tier === 6) {
+    const lip = x + set.nose * .76;
+    polygon(list, set.stripe, [[x + .04, .31, .46], [lip, .18, .32], [lip, .23, .32], [x + .04, .37, .46]]);
   }
   if (glow) {
     slab(list, tail - .65, -.32, .66, .64, .01, glow, 1);
@@ -309,6 +353,7 @@ let points = 0;
 let stationPoints = 0;
 let boost = 0;
 const service = document.querySelector("#train-service");
+const upgrade = document.querySelector("#train-next");
 const tripMs = 1550;
 
 function update(state) {
@@ -391,7 +436,10 @@ function draw(now) {
   if (service.textContent !== fleet[tier].name) service.textContent = fleet[tier].name;
   render(faces, width, height);
 
-  const speedLimit = [105, 160, 220, 300][tier];
+  const nextTrain = fleet[tier + 1];
+  const upgradeText = nextTrain ? `${nextTrain.threshold - points} pts to ${nextTrain.name}` : "Fleet complete";
+  if (upgrade.textContent !== upgradeText) upgrade.textContent = upgradeText;
+  const speedLimit = fleet[tier].speed;
   const speedLabel = traveling ? `${Math.round(Math.sin(elapsed * Math.PI) * speedLimit)} KM/H`
     : boosting ? "PULLING AHEAD" : "AT STATION";
   if (speedLabel !== lastSpeed) {

@@ -22,6 +22,15 @@ CURATED = {
     "planning": "postwar planned housing estate aerial modernist architecture",
     "bridges": "steel truss bridge engineering structure",
 }
+def editorial_searches():
+    path = DIST / "editorial-banks.js"
+    if not path.is_file():
+        return {}
+    text = path.read_text(encoding="utf-8").strip()
+    return {key: bank["photoSearch"] for key, bank in json.loads(text.removeprefix("window.builtWorldEditorial = ").removesuffix(";")).items()}
+
+
+RAIL_TOPICS = ["high-speed", "shinkansen", "tgv", "acela"]
 COVER_SEARCH = "Golden Gate Bridge aerial sunset San Francisco"
 DATASETS = {
     "airports": {
@@ -136,8 +145,14 @@ def round_ids(day, override, known):
         return selected
     ordinal = (day - date(1970, 1, 1)).days
     built = list(CURATED)
-    omitted = ordinal % len(built)
-    chosen = built[:omitted] + built[omitted + 1:]
+    editorial = editorial_searches()
+    city = [key for key in editorial if key not in RAIL_TOPICS]
+    if city and day >= date(2026, 11, 11):
+        chosen = [built[ordinal % len(built)], built[(ordinal + 2) % len(built)],
+                  RAIL_TOPICS[ordinal % len(RAIL_TOPICS)], city[(ordinal + ordinal // 4) % len(city)]]
+    else:
+        omitted = ordinal % len(built)
+        chosen = built[:omitted] + built[omitted + 1:]
     large = list(DATASETS)[ordinal % len(DATASETS)]
     chosen.insert(ordinal % 4, large)
     return chosen
@@ -148,7 +163,7 @@ def bank_config(path):
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
     for key, meta in data.items():
-        if not re.fullmatch(r"[a-z][a-z0-9-]+", key) or key in CURATED or key in DATASETS:
+        if not re.fullmatch(r"[a-z][a-z0-9-]+", key) or key in CURATED or key in DATASETS or key in editorial_searches():
             raise ValueError(f"Invalid or reserved bank ID: {key}")
         if any(not isinstance(meta.get(field), str) or not meta[field].strip()
                for field in ("label", "prompt", "rule", "source", "sourceLabel", "photoSearch")):
@@ -204,7 +219,7 @@ def compile_content(args):
     dates = {}
     for key, entry in load_schedule(args.schedule).items():
         day = date.fromisoformat(key)
-        selected = round_ids(day, entry, set(metadata) | set(CURATED))
+        selected = round_ids(day, entry, set(metadata) | set(CURATED) | set(editorial_searches()))
         photos = entry.get("photos", {})
         if set(photos) - {"cover", *selected}:
             raise ValueError(f"{day}: photo slot does not belong to this edition")
@@ -224,7 +239,7 @@ def photo_brief(args):
     day = date.fromisoformat(args.date)
     override = load_schedule(args.schedule).get(args.date, {})
     custom = bank_config(args.banks)
-    searches = {**CURATED, **{key: value["photoSearch"] for key, value in {**DATASETS, **custom}.items()}}
+    searches = {**CURATED, **editorial_searches(), **{key: value["photoSearch"] for key, value in {**DATASETS, **custom}.items()}}
     selected = round_ids(day, override, set(searches))
     for key, search in [("cover", COVER_SEARCH), *((key, searches[key]) for key in selected)]:
         record = override.get("photos", {}).get(key, {})

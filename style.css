@@ -295,3 +295,33 @@ aside { min-width: 0; padding: clamp(18px, 3vw, 33px); background: #1a263a; }
   #game-route #train-view { height: 154px; }
   #game-route .route-current { display: none; }
 }
+
+/* Earth, timber, and warm station lights. */
+:root { --ink: #27251d; --paper: #e9dfc9; --lime: #e7c587; --orange: #db9874; --muted: #b9ad94; --line: #5e5544; }
+body { background: #1c1c15; }
+.cover-visual, #results-route, #game-route { background: radial-gradient(ellipse at 69% 42%, #514d37, #302e24 68%, #22231b); }
+.cover-copy { background: linear-gradient(120deg,#26261bf7,#353125e8); border-color: #b29a6d77; box-shadow: 0 13px 28px #1f1c175c; }
+.cover-copy .instructions, .cover-links button { color: #e5d9bf; }
+.cover-copy h1 span { color: #e6a686; }
+.cover-copy .primary, .cover-copy .primary span { color: #2c261c; }
+.cover-copy .primary:hover, .primary:hover { background: #f2d7a4; }
+.train-window { background: radial-gradient(ellipse at 73% 19%,#8b8160,#5d5f48 47%,#31382d 94%); border-color: #81795b; }
+#train-speed, #train-service, #train-next { color: #f0dfb8; background: #27271de8; border-color: #ad9b727f; }
+#train-next { position: absolute; left: 10px; bottom: 10px; border: 1px solid #ad9b727f; border-radius: 4px; padding: 5px 8px; font: 700 10px var(--mono); }
+.route-head, #route-coordinates, .station-label { color: #d3c7a8; }
+.route-head, #game-route { border-bottom-color: #777052; }
+#route-stops::before { border-color: #81775e; }
+#route-stops::after { box-shadow: 0 0 8px #edc98b70; }
+.station-marker { background: #3a392c; color: #e9dcc1; border-color: #918568; }
+.cleared .station-marker { color: #30271b; }
+.round-banner { background: linear-gradient(110deg,#302e23,#534c36); }
+aside { background: #302e23; }
+.results-top { background: linear-gradient(105deg,#302d21,#565039); }
+.stat { background: #d9cfb2; }
+.pass-toggle { background: #353126; border-color: #8b7856; }
+.pass-toggle:hover { background: #524634; }
+.photo-slot { color: #dbccb0; border-color: #817354; background: repeating-linear-gradient(-45deg,#8a795833,#8a795833 1px,transparent 1px,transparent 7px); }
+form .primary { background: #34342a; color: #f2d59c; }
+form .primary:hover { background: #514a36; }
+@media (max-width: 840px) { .cover-copy { background: #302c21; } }
+@media (max-width: 390px) { #train-next, #train-service { font-size: 8px; padding-inline: 4px; } }
