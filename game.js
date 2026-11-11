@@ -477,6 +477,74 @@ function showPhoto(element, slot, label) {
   image.src = photo.file;
 }
 
+const categoryGroups = {
+  homes: "Architecture", "housing-types": "Architecture", planning: "Urban planning",
+  "street-design": "Urban planning", tunnels: "Engineering", "tunnel-methods": "Engineering",
+  bridges: "Engineering", "bridges-world": "Engineering", stormwater: "Water infrastructure",
+  canals: "Water infrastructure", airports: "Aviation"
+};
+const pointTiers = [[10, "Common"], [20, "Uncommon"], [40, "Obscure"]];
+const categoryGroup = round => categoryGroups[round.id] ?? (round.id in editorial || round.id in placeBanks || round.id === "rail" ? "Rail" : "Infrastructure");
+
+function flyPoints(points) {
+  const target = $("route-points");
+  const destination = target.getBoundingClientRect();
+  const from = $("guess").getBoundingClientRect();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const chip = document.createElement("span");
+  chip.className = `point-flight tier-${points}`;
+  chip.textContent = `+${points}`;
+  const x = from.left + Math.min(from.width * .55, 160), y = from.top + from.height / 2;
+  chip.style.left = `${x}px`;
+  chip.style.top = `${y}px`;
+  $("score-flights").append(chip);
+  const end = destination.top > 0 && destination.bottom < innerHeight ? destination : $("round-score").getBoundingClientRect();
+  const dx = end.left + end.width / 2 - x, dy = end.top + end.height / 2 - y;
+  const flight = chip.animate([
+    { transform: "translate(-50%,-50%) scale(.65)", opacity: 0 },
+    { transform: "translate(-50%,calc(-50% - 23px)) scale(1.22)", opacity: 1, offset: .24 },
+    { transform: `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.65)`, opacity: 0 }
+  ], { duration: points === 40 ? 810 : 620, easing: "cubic-bezier(.2,.6,.22,1)" });
+  flight.finished.then(() => {
+    chip.remove();
+    if (!target.isConnected) return;
+    target.animate([{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], { duration: 230 });
+  }, () => chip.remove());
+}
+
+const historyKey = "built-world-score-history-v1";
+const minimumSample = 5;
+function readHistory() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(historyKey) || "[]");
+    return Array.isArray(stored) ? stored.filter(row => row && typeof row.id === "string" && Number.isFinite(row.points) && Array.isArray(row.categories)) : [];
+  } catch { return []; }
+}
+
+function personalPercentile(score, previous) {
+  if (previous.length < minimumSample) return null;
+  const below = previous.filter(value => value < score).length;
+  const tied = previous.filter(value => value === score).length;
+  return Math.round((below + tied / 2) / previous.length * 100);
+}
+
+function scorecard(points) {
+  const history = readHistory();
+  const id = mode === "unlimited" ? `unlimited:${Date.now()}:${Math.random().toString(36).slice(2)}` : `${mode}:${editionDate}`;
+  const comparable = history.filter(row => row.mode === mode && row.id !== id);
+  const totals = comparable.map(row => row.points);
+  const percentile = personalPercentile(points, totals);
+  $("ranking-value").textContent = percentile === null ? "—" : `${percentile}%`;
+  $("ranking-note").textContent = percentile === null
+    ? `${totals.length} of ${minimumSample} prior ${mode} runs needed on this device.`
+    : `Compared with ${totals.length} prior ${mode} runs on this device. Ties count halfway.`;
+  const current = { id, mode, points, categories: run.map((result, index) => ({ id: rounds[index].id, points: result.points })) };
+  try {
+    localStorage.setItem(historyKey, JSON.stringify([...history.filter(row => row.id !== id), current].slice(-150)));
+  } catch {}
+  return comparable;
+}
+
 function updateRoute(phase, cue) {
   const cleared = run.map(result => result.found.size > 0);
   const points = run.reduce((sum, result) => sum + result.points, 0);
@@ -515,6 +583,9 @@ function prepareRound() {
   run[roundIndex] = { found: new Set(), points: 0, unmatched: new Map() };
   $("round").textContent = `ROUND ${roundIndex + 1} / ${rounds.length} · ${round.label.toUpperCase()}`;
   $("prompt").textContent = round.prompt;
+  $("round-category").textContent = categoryGroup(round);
+  $("round-score").textContent = "0 PTS";
+  $("game-route").dataset.category = categoryGroup(round);
   $("rule").textContent = round.rule;
   $("feedback").textContent = "";
   $("feedback").dataset.tone = "neutral";
@@ -672,6 +743,8 @@ $("form").addEventListener("submit", event => {
   const rare = entry.points === 40;
   gameAudio.play(rare ? "rare" : "correct");
   updateRoute("play", rare ? "rare" : "correct");
+  $("round-score").textContent = `${result.points} PTS`;
+  flyPoints(entry.points);
   $("feedback").dataset.tone = rare ? "rare" : "correct";
   $("feedback").textContent = `+${entry.points} · ${entry.name}${corrected ? " · Spelling corrected" : ""}${entry.points === 40 ? " · Obscure find" : ""}`;
   $("count").textContent = result.found.size;
@@ -701,14 +774,35 @@ function showResults() {
     stat.append(number, caption);
     return stat;
   }));
+  const previous = scorecard(points);
   $("review").replaceChildren(...run.map((result, index) => {
-    const row = document.createElement("div");
-    row.className = "review-row";
-    const category = document.createElement("span");
-    const score = document.createElement("b");
-    category.textContent = `${index + 1}. ${rounds[index].label}`;
-    score.textContent = `${result.found.size} found · ${result.points} pts`;
-    row.append(category, score);
+    const round = rounds[index];
+    const row = document.createElement("article");
+    row.className = "grade-card";
+    const header = document.createElement("div");
+    header.className = "grade-header";
+    const category = document.createElement("h3");
+    category.textContent = round.label;
+    const score = document.createElement("strong");
+    score.textContent = `${result.points} pts`;
+    header.append(category, score);
+    const detail = document.createElement("p");
+    detail.textContent = `${categoryGroup(round)} · ${result.found.size} found · ${result.found.size ? "Cleared" : "Missed"}`;
+    const tiers = document.createElement("div");
+    tiers.className = "tier-key";
+    for (const [value, label] of pointTiers) {
+      const chip = document.createElement("span");
+      chip.className = `tier-${value}`;
+      const count = [...result.found].filter(entry => entry.points === value).length;
+      chip.textContent = `${count} ${label.toLowerCase()}`;
+      tiers.append(chip);
+    }
+    const sample = previous.flatMap(record => record.categories.filter(entry => entry?.id === round.id && Number.isFinite(entry.points)).map(entry => entry.points));
+    const rank = personalPercentile(result.points, sample);
+    const comparison = document.createElement("p");
+    comparison.className = "grade-comparison";
+    comparison.textContent = rank === null ? `Personal percentile · ${sample.length}/${minimumSample} prior attempts` : `Personal percentile · ${rank}% across ${sample.length} prior attempts`;
+    row.append(header, detail, tiers, comparison);
     return row;
   }));
   const marks = run.map(result => result.found.size ? "■" : "□").join(" ");
@@ -737,6 +831,15 @@ function startGame(kind = "daily", date = today) {
 
 $("edition-day").textContent = `DAILY / ${today}`;
 configureRun("daily");
+$("daily-line").replaceChildren(...rounds.map(round => {
+  const item = document.createElement("li");
+  const group = document.createElement("small");
+  group.textContent = categoryGroup(round);
+  const title = document.createElement("strong");
+  title.textContent = round.label;
+  item.append(group, title);
+  return item;
+}));
 $("answer-count").textContent = `${rounds.reduce((total, round) => total + round.entries.length, 0).toLocaleString("en-US")} ACCEPTED ANSWERS TODAY`;
 showPhoto($("cover-photo"), "cover", "Golden Gate");
 $("intro-route").append($("route"));

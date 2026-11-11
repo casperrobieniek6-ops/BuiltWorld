@@ -33,12 +33,14 @@
   </div>
   <div class="cover-visual"><div id="intro-route"></div><div id="cover-photo" class="photo-slot cover-photo" aria-label="Cover photo slot">COVER PHOTO SLOT · GOLDEN GATE</div></div>
   <div class="cover-strip"><span>5 ROUNDS</span><span>45 SECONDS EACH</span><span id="answer-count"></span></div>
+  <ol class="category-line" id="daily-line" aria-label="Today’s categories"></ol>
 </section>
 <section class="game" id="game" hidden>
-  <div class="round-banner" id="round-art"><div id="round-photo" class="photo-slot" aria-label="Photo slot"></div><div class="roundhead"><p class="eyebrow" id="round"></p><span class="timer" id="timer"></span></div><div class="track" aria-hidden="true"><div id="bar"></div></div></div>
+  <div class="journey-stage">
   <div id="game-route"></div>
-  <div class="game-body">
-    <div class="play">
+  <div class="play">
+      <div class="round-banner" id="round-art"><div class="roundhead"><p class="eyebrow" id="round"></p><span class="timer" id="timer"></span></div><div class="track" aria-hidden="true"><div id="bar"></div></div></div>
+      <div class="round-meta"><span id="round-category"></span><span id="round-score">0 PTS</span></div>
       <h1 class="prompt" id="prompt" tabindex="-1"></h1>
       <p class="rule" id="rule"></p>
       <a class="round-source" id="round-source" target="_blank" rel="noopener" hidden></a>
@@ -46,6 +48,13 @@
       <form id="form"><label class="sr" for="guess">Your answer</label><input id="guess" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type an answer…"><button class="primary" id="submit">Add <span aria-hidden="true">↵</span></button></form>
       <p id="feedback" role="status"></p>
       <div id="actions"><button class="quiet" id="end">End round</button><button class="primary" id="next" hidden>Next round <span aria-hidden="true">→</span></button></div>
+    </div>
+  </div>
+  <div class="round-manifest">
+    <aside><div class="aside-top"><h2>Answer log</h2><strong id="count">0</strong></div><ol id="found"></ol><p id="empty">Your answers appear here as you go.</p></aside>
+    <div class="round-reference">
+      <div class="tier-key" aria-label="Point tiers"><span>10 · Common</span><span>20 · Uncommon</span><span>40 · Obscure</span></div>
+      <div id="round-photo" class="photo-slot" aria-label="Photo slot"></div>
       <div id="reveal" hidden><h2>Other answers you could have found</h2><ul id="misses"></ul>
         <details id="catalog"><summary>Explore accepted answers</summary>
           <label for="catalog-search">Search names and aliases</label><input id="catalog-search" type="search" autocomplete="off">
@@ -54,23 +63,25 @@
         <section id="unmatched" hidden><h3>Unmatched guesses</h3><ul id="unmatched-list"></ul></section>
       </div>
     </div>
-    <aside><div class="aside-top"><h2>Answers found</h2><strong id="count">0</strong></div><ol id="found"></ol><p id="empty">Your answers appear here as you go.</p></aside>
   </div>
 </section>
 <section class="results" id="results" hidden>
   <div class="results-top"><p class="eyebrow" id="results-day"></p><h1 tabindex="-1" id="resultsTitle">Your run<span>.</span></h1></div>
-  <div class="results-grid"><div id="results-route"></div><div class="results-body"><div class="stats" id="stats"></div><div id="review"></div>
+  <div class="results-grid"><div id="results-route"></div><div class="results-body"><div class="stats" id="stats"></div>
+    <section class="ranking" aria-labelledby="ranking-heading"><div><h2 id="ranking-heading">Personal percentile</h2><p id="ranking-note"></p></div><strong id="ranking-value"></strong></section>
+    <h2 class="breakdown-heading">Category breakdown</h2><div id="review"></div>
     <div class="result-actions"><button class="primary" id="copy">Copy result <span aria-hidden="true">→</span></button><button class="quiet" id="replay">Play again</button></div>
     <textarea id="share" aria-label="Shareable result" readonly hidden></textarea><p id="copyStatus" role="status"></p>
   </div></div>
 </section>
 <section class="route" id="route" aria-label="Rail journey progress">
-  <div class="route-head"><span>NORTHBOUND LINE</span><span id="route-points">0 PTS</span></div>
+  <div class="route-head"><span>NORTHBOUND LINE</span><span id="route-points" aria-label="Run score">0 PTS</span></div>
   <div class="train-window"><div id="train-view" aria-hidden="true"></div><span id="train-speed" aria-hidden="true">AT STATION</span><span id="train-service" aria-live="polite">Heritage diesel</span><span id="train-next"></span></div>
   <div class="route-current"><span id="route-location">Five stops</span><span id="route-coordinates"></span></div>
   <ol id="route-stops" aria-label="Round status"></ol>
 </section>
 </main>
+<div id="score-flights" aria-hidden="true"></div>
 <dialog id="rail-pass" aria-labelledby="pass-title">
   <div class="pass-head">
     <p class="eyebrow">BUILT WORLD</p>

@@ -132,6 +132,16 @@ function makeCity(center, index) {
   for (const x of [center - 5.2, center + 4.7]) {
     for (let step = 0; step < 5; step += 1) slab(list, x, -5.04 + step * .115, .46, .049, -.043, "#d8c7a2");
   }
+  for (const offset of [-5.1, -2.6, 1.8, 4.7]) {
+    const x = center + offset;
+    box(list, x, -3.03, .08, .08, -.02, .9, "#4f503e");
+    box(list, x - .06, -3.08, .20, .18, .86, .10, "#edce93");
+    box(list, x + .16, -3.34, .48, .16, -.04, .13, "#9a7750");
+  }
+  for (const [offset, color] of [[-5.2, "#85644a"], [2.8, "#737b61"], [5.4, "#ae8967"]]) {
+    box(list, center + offset, -4.9, .65, .31, -.035, .15, color);
+    box(list, center + offset + .17, -4.86, .29, .23, .11, .12, "#8d9180");
+  }
   slab(list, center - 4.8, -2.42, 9.6, 1.24, -.036, palette.platform, 1);
   slab(list, center - 4.8, -1.27, 9.6, .09, -.026, palette.amber, 1);
   building(list, center - 1.8, -4.05, 3.6, 1.36, modern ? 1.08 : .77, modern ? "#c5c2af" : "#b58768", !modern);
@@ -231,7 +241,11 @@ function train(list, x, tier, glow) {
     polygon(list, set.stripe, [[x + .04, .31, .46], [lip, .18, .32], [lip, .23, .32], [x + .04, .37, .46]]);
   }
   if (glow) {
-    slab(list, tail - .65, -.32, .66, .64, .01, glow, 1);
+    for (let streak = 0; streak < 4; streak += 1) {
+      const spread = .19 + streak * .16;
+      const length = 1.15 + streak * .19;
+      polygon(list, glow, [[tail - length, .018, spread], [tail - .12, .018, spread + .045], [tail - .19, .018, spread - .015]]);
+    }
   }
 }
 
