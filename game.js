@@ -335,6 +335,10 @@ let mode = "daily";
 let rounds = [];
 let photos = {};
 const preparedBanks = new Map();
+const specials = window.builtWorldSpecials;
+const specialName = id => (specials.liveries[id] ?? specials.fleet[id]).name;
+let activeSpecial = null;
+const discoveries = new Map();
 
 function dailyIds(date) {
   const dayNumber = Date.parse(date) / 86400000;
@@ -377,6 +381,11 @@ function prepareBank(id) {
     if (alias.length < 5) continue;
     if (!round.byLength.has(alias.length)) round.byLength.set(alias.length, []);
     round.byLength.get(alias.length).push([alias, entry]);
+  }
+  round.specials = new Map();
+  for (const [name, trainId] of Object.entries(specials.answers[id] ?? {})) {
+    const answer = round.lookup.get(normalize(name));
+    if (answer) round.specials.set(answer, trainId);
   }
   preparedBanks.set(id, round);
   return round;
@@ -549,7 +558,7 @@ function updateRoute(phase, cue) {
   const cleared = run.map(result => result.found.size > 0);
   const points = run.reduce((sum, result) => sum + result.points, 0);
   const index = Math.min(roundIndex, rounds.length - 1);
-  const state = { phase, index, cleared, points, cue, stops: routeStops };
+  const state = { phase, index, cleared, points, cue, special: activeSpecial, stops: routeStops };
   window.builtWorldRoute = state;
   window.dispatchEvent(new CustomEvent("built-world-route", { detail: state }));
   $("route-points").textContent = `${points} PTS`;
@@ -584,6 +593,7 @@ function prepareRound() {
   $("round").textContent = `ROUND ${roundIndex + 1} / ${rounds.length} · ${round.label.toUpperCase()}`;
   $("prompt").textContent = round.prompt;
   $("round-category").textContent = categoryGroup(round);
+  $("special-count").textContent = round.specials.size ? `◆ ${round.specials.size} special ${round.specials.size === 1 ? "answer" : "answers"}` : "";
   $("round-score").textContent = "0 PTS";
   $("game-route").dataset.category = categoryGroup(round);
   $("rule").textContent = round.rule;
@@ -741,12 +751,17 @@ $("form").addEventListener("submit", event => {
   result.found.add(entry);
   result.points += entry.points;
   const rare = entry.points === 40;
-  gameAudio.play(rare ? "rare" : "correct");
-  updateRoute("play", rare ? "rare" : "correct");
+  const special = rounds[roundIndex].specials.get(entry);
+  if (special) {
+    activeSpecial = special;
+    if (!discoveries.has(special)) discoveries.set(special, entry.name);
+  }
+  gameAudio.play(special || rare ? "rare" : "correct");
+  updateRoute("play", special ? "special" : rare ? "rare" : "correct");
   $("round-score").textContent = `${result.points} PTS`;
   flyPoints(entry.points);
-  $("feedback").dataset.tone = rare ? "rare" : "correct";
-  $("feedback").textContent = `+${entry.points} · ${entry.name}${corrected ? " · Spelling corrected" : ""}${entry.points === 40 ? " · Obscure find" : ""}`;
+  $("feedback").dataset.tone = special || rare ? "rare" : "correct";
+  $("feedback").textContent = `+${entry.points} · ${entry.name}${corrected ? " · Spelling corrected" : ""}${special ? ` · ◆ ${specialName(special)}` : rare ? " · Obscure find" : ""}`;
   $("count").textContent = result.found.size;
   $("empty").hidden = true;
   const item = document.createElement("li");
@@ -754,13 +769,23 @@ $("form").addEventListener("submit", event => {
   const points = document.createElement("b");
   name.textContent = entry.name;
   points.textContent = `+${entry.points}`;
-  if (rare) item.classList.add("rare");
+  if (special || rare) item.classList.add("rare");
   item.append(name, points);
   $("found").prepend(item);
 });
 
 function showResults() {
   gameAudio.play("finish");
+  $("special-results").hidden = !discoveries.size;
+  $("special-results-list").replaceChildren(...Array.from(discoveries, ([id, answer]) => {
+    const item = document.createElement("li");
+    const name = document.createElement("strong");
+    name.textContent = specialName(id);
+    const trigger = document.createElement("span");
+    trigger.textContent = answer;
+    item.append(name, trigger);
+    return item;
+  }));
   const cleared = run.filter(result => result.found.size).length;
   const answers = run.reduce((sum, result) => sum + result.found.size, 0);
   const points = run.reduce((sum, result) => sum + result.points, 0);
@@ -821,6 +846,8 @@ function startGame(kind = "daily", date = today) {
   const label = kind === "unlimited" ? "UNLIMITED" : `${kind.toUpperCase()} / ${date}`;
   $("results-day").textContent = `${label} / RESULTS`;
   run = [];
+  activeSpecial = null;
+  discoveries.clear();
   roundIndex = 0;
   $("intro").hidden = true;
   $("results").hidden = true;

@@ -11,6 +11,7 @@
 <script defer src="daily-content.js"></script>
 <script defer src="editorial-banks.js"></script>
 <script defer src="place-catalog.js"></script>
+<script defer src="special-trains.js"></script>
 <script defer src="game.js"></script>
 <script type="module" src="train.mjs"></script>
 </head>
@@ -40,7 +41,7 @@
   <div id="game-route"></div>
   <div class="play">
       <div class="round-banner" id="round-art"><div class="roundhead"><p class="eyebrow" id="round"></p><span class="timer" id="timer"></span></div><div class="track" aria-hidden="true"><div id="bar"></div></div></div>
-      <div class="round-meta"><span id="round-category"></span><span id="round-score">0 PTS</span></div>
+      <div class="round-meta"><span id="round-category"></span><span id="special-count" title="Find a featured answer to change your train"></span><span id="round-score">0 PTS</span></div>
       <h1 class="prompt" id="prompt" tabindex="-1"></h1>
       <p class="rule" id="rule"></p>
       <a class="round-source" id="round-source" target="_blank" rel="noopener" hidden></a>
@@ -69,6 +70,7 @@
   <div class="results-top"><p class="eyebrow" id="results-day"></p><h1 tabindex="-1" id="resultsTitle">Your run<span>.</span></h1></div>
   <div class="results-grid"><div id="results-route"></div><div class="results-body"><div class="stats" id="stats"></div>
     <section class="ranking" aria-labelledby="ranking-heading"><div><h2 id="ranking-heading">Personal percentile</h2><p id="ranking-note"></p></div><strong id="ranking-value"></strong></section>
+    <section id="special-results" hidden><h2 class="breakdown-heading">Trains discovered</h2><ul id="special-results-list"></ul></section>
     <h2 class="breakdown-heading">Category breakdown</h2><div id="review"></div>
     <div class="result-actions"><button class="primary" id="copy">Copy result <span aria-hidden="true">→</span></button><button class="quiet" id="replay">Play again</button></div>
     <textarea id="share" aria-label="Shareable result" readonly hidden></textarea><p id="copyStatus" role="status"></p>
@@ -76,7 +78,7 @@
 </section>
 <section class="route" id="route" aria-label="Rail journey progress">
   <div class="route-head"><span>NORTHBOUND LINE</span><span id="route-points" aria-label="Run score">0 PTS</span></div>
-  <div class="train-window"><div id="train-view" aria-hidden="true"></div><span id="train-speed" aria-hidden="true">AT STATION</span><span id="train-service" aria-live="polite">Heritage diesel</span><span id="train-next"></span></div>
+  <div class="train-window"><div id="train-view" aria-hidden="true"></div><span id="train-speed" aria-hidden="true">AT STATION</span><span id="train-service" aria-live="polite">Heritage diesel</span><span id="train-next"></span><span id="train-discovery" role="status" hidden></span></div>
   <div class="route-current"><span id="route-location">Five stops</span><span id="route-coordinates"></span></div>
   <ol id="route-stops" aria-label="Round status"></ol>
 </section>

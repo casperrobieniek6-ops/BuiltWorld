@@ -196,8 +196,7 @@ const fleet = [
   { name: "N700S Shinkansen", threshold: 205, speed: 300, body: "#e8e6d8", stripe: "#315886", roof: "#c5c9c2", cars: 4, length: 2.20, nose: 1.13 }
 ];
 
-function train(list, x, tier, glow) {
-  const set = fleet[tier];
+function train(list, x, set, tier, glow) {
   const length = set.length;
   const step = length + .12;
   for (let car = 0; car < set.cars; car += 1) {
@@ -214,6 +213,18 @@ function train(list, x, tier, glow) {
   }
 
   const tail = x - length - (set.cars - 1) * step;
+  if (set.dome) {
+    const dome = x - step * 1.75;
+    box(list, dome, -.34, length * .50, .68, .78, .29, "#a6c7bd");
+    box(list, dome + .05, -.30, length * .45, .60, 1.07, .065, set.roof);
+    for (const offset of [.15, .38, .62]) {
+      for (const side of [-.35, .34]) box(list, dome + offset, side, .024, .016, .79, .27, set.stripe);
+    }
+  }
+  if (set.observationDeck) {
+    box(list, tail - .23, -.43, .28, .86, .05, .16, set.body);
+    for (const side of [-.43, .40]) box(list, tail - .22, side, .29, .038, .20, .20, set.stripe);
+  }
   box(list, tail - .019, -.34, .026, .68, .35, .18, palette.blue);
   for (const z of [-.33, .26]) box(list, tail - .04, z, .03, .075, .20, .075, "#ff7a70");
   if (!set.nose) {
@@ -253,8 +264,7 @@ makeTerrain();
 stationX.forEach(makeCity);
 
 const camera = new THREE.PerspectiveCamera(42, 1, .1, 130);
-const vector = new THREE.Vector3();
-const nearPoint = new THREE.Vector3();
+const projection = new THREE.Matrix4();
 const canvas = document.createElement("canvas");
 view.append(canvas);
 let render;
@@ -319,24 +329,27 @@ function canvasRenderer(output) {
     }
     context.clearRect(0, 0, w, h);
     const projected = [];
+    const m = projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).elements;
+    const plane = .35;
     for (const face of sceneFaces) {
+      const clip = face.points.map(([x, y, z]) => [
+        m[0] * x + m[4] * y + m[8] * z + m[12],
+        m[1] * x + m[5] * y + m[9] * z + m[13],
+        m[3] * x + m[7] * y + m[11] * z + m[15]
+      ]);
       const points = [];
-      for (let i = 0; i < face.points.length; i += 1) {
-        const from = face.points[i], to = face.points[(i + 1) % face.points.length];
-        const start = -nearPoint.set(...from).applyMatrix4(camera.matrixWorldInverse).z;
-        const end = -nearPoint.set(...to).applyMatrix4(camera.matrixWorldInverse).z;
-        if (start >= .35) points.push(from);
-        if ((start >= .35) !== (end >= .35)) {
-          const t = (.35 - start) / (end - start);
-          points.push(from.map((coordinate, axis) => coordinate + (to[axis] - coordinate) * t));
+      for (let i = 0; i < clip.length; i += 1) {
+        const from = clip[i], to = clip[(i + 1) % clip.length];
+        if (from[2] >= plane) points.push(from);
+        if ((from[2] >= plane) !== (to[2] >= plane)) {
+          const t = (plane - from[2]) / (to[2] - from[2]);
+          points.push([from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t, plane]);
         }
       }
       if (points.length < 3) continue;
-      const screen = points.map(point => {
-        vector.set(...point).project(camera);
-        return [(vector.x + 1) * w / 2, (1 - vector.y) * h / 2, vector.z];
-      });
-      if (screen.some(point => point[2] > 1) || screen.every(point => point[0] < -1 || point[0] > w + 1) && face.layer > 0) continue;
+      const screen = points.map(([x, y, depth]) => [(x / depth + 1) * w / 2, (1 - y / depth) * h / 2, depth]);
+      if (screen.every(point => point[0] < 0) || screen.every(point => point[0] > w)
+          || screen.every(point => point[1] < 0) || screen.every(point => point[1] > h)) continue;
       const depth = screen.reduce((sum, point) => sum + point[2], 0) / screen.length;
       projected.push({ screen, depth, color: face.color, layer: face.layer });
     }
@@ -360,6 +373,11 @@ let flashAt = -Infinity;
 let rare = false;
 let redraw = true;
 let lastFrame = 0;
+let specialId = null;
+let specialAt = -Infinity;
+let furthest = 0;
+const specialTrains = window.builtWorldSpecials;
+const discovery = document.querySelector("#train-discovery");
 let phase = "intro";
 let launch = false;
 let lastSpeed = "";
@@ -368,23 +386,31 @@ let stationPoints = 0;
 let boost = 0;
 const service = document.querySelector("#train-service");
 const upgrade = document.querySelector("#train-next");
-const tripMs = 1550;
+const tripMs = 1800;
 
 function update(state) {
   const next = state.phase === "intro" ? 0 : state.index;
   const startFirst = state.phase === "travel" && state.index === 0 && phase !== "travel";
   if (next !== target || startFirst) {
-    origin = startFirst ? -.36 : current;
+    origin = startFirst ? -.23 : current + boost / 25;
+    boost = 0;
+    if (startFirst) furthest = 0;
     target = next;
     departedAt = performance.now();
     launch = startFirst;
     stationPoints = state.points;
   }
   points = state.points;
-  if (state.phase === "intro" || state.phase === "results") stationPoints = points;
+  if (state.phase === "intro") stationPoints = points;
+  if (specialId !== state.special || state.cue === "special") {
+    specialId = state.special;
+    specialAt = state.cue === "special" ? performance.now() : -Infinity;
+    discovery.hidden = !specialId || state.cue !== "special";
+    if (!discovery.hidden) discovery.textContent = `◆ ${(specialTrains.fleet[specialId] ?? specialTrains.liveries[specialId]).name} unlocked`;
+  }
   if (state.cue) {
     flashAt = performance.now();
-    rare = state.cue === "rare";
+    rare = state.cue !== "correct";
   }
   phase = state.phase;
   redraw = true;
@@ -396,19 +422,26 @@ const clamp = value => Math.min(1, Math.max(0, value));
 function draw(now) {
   requestAnimationFrame(draw);
   const width = view.clientWidth, height = view.clientHeight;
-  if (!width || !height || document.hidden || now - lastFrame < 30) return;
+  if (!width || !height || document.hidden) return;
+  const frameTime = Math.min(50, Math.max(1, now - lastFrame));
   const elapsed = reducedMotion.matches ? 1 : clamp((now - departedAt) / tripMs);
   const traveling = origin !== target && elapsed < 1;
   const pulse = reducedMotion.matches ? 0 : clamp(1 - (now - flashAt) / 750);
-  const desiredBoost = phase === "play" || phase === "review"
+  const desiredBoost = !traveling && (phase === "play" || phase === "review" || phase === "results")
     ? Math.min(2.6, (points - stationPoints) * .036)
     : 0;
-  boost = reducedMotion.matches ? desiredBoost : boost + (desiredBoost - boost) * .24;
+  boost = reducedMotion.matches ? desiredBoost : boost + (desiredBoost - boost) * (1 - Math.exp(-frameTime / 120));
   const boosting = Math.abs(desiredBoost - boost) > .02;
+  const discovering = now - specialAt < 2400;
+  if (!redraw && !traveling && !pulse && !boosting && discovery.hidden) return;
+  if (!discovering) discovery.hidden = true;
   if (!redraw && !traveling && !pulse && !boosting) return;
   redraw = traveling || pulse > 0 || boosting;
+  if (!boosting) boost = desiredBoost;
   lastFrame = now;
-  current = origin + (target - origin) * smooth(elapsed);
+  const travelEase = elapsed ** 3 * (10 + elapsed * (-15 + 6 * elapsed));
+  current = origin + (target - origin) * travelEase;
+  furthest = Math.max(furthest, current);
 
   const x = current * 25 + boost;
   camera.aspect = width / height;
@@ -432,7 +465,7 @@ function draw(now) {
   slab(faces, Math.max(-25, x - 34), .57, Math.min(34, x + 25), .11, -.023, palette.mint);
   for (const [index, city] of cities.entries()) {
     if (Math.abs(stationX[index] - x) > 28) continue;
-    let rise = index < target ? 1 : smooth(clamp(1 - Math.abs(current - index) / .51));
+    let rise = smooth(clamp(1 - (index - furthest) / .62));
     if (phase === "intro" && index === 0) rise = 1;
     if (launch && traveling && index === 0) rise = smooth(elapsed);
     if (phase === "intro" && index === 1) rise = .29;
@@ -446,14 +479,18 @@ function draw(now) {
     }
   }
   const tier = fleet.findLastIndex(item => points >= item.threshold);
-  train(faces, x + .8, tier, pulse ? (rare ? palette.coral : palette.mint) : "");
-  if (service.textContent !== fleet[tier].name) service.textContent = fleet[tier].name;
+  const specialTier = specialTrains.fleet[specialId]?.tier;
+  const paint = specialTrains.liveries[specialId];
+  const modelTier = specialTier ?? tier;
+  const set = paint ? { ...fleet[modelTier], ...paint } : fleet[modelTier];
+  train(faces, x + .8, set, modelTier, pulse ? (paint?.stripe ?? (rare ? palette.coral : palette.mint)) : "");
+  if (service.textContent !== set.name) service.textContent = set.name;
   render(faces, width, height);
 
   const nextTrain = fleet[tier + 1];
-  const upgradeText = nextTrain ? `${nextTrain.threshold - points} pts to ${nextTrain.name}` : "Fleet complete";
+  const upgradeText = specialId ? "◆ Special train" : nextTrain ? `${nextTrain.threshold - points} pts to ${nextTrain.name}` : "Fleet complete";
   if (upgrade.textContent !== upgradeText) upgrade.textContent = upgradeText;
-  const speedLimit = fleet[tier].speed;
+  const speedLimit = set.speed;
   const speedLabel = traveling ? `${Math.round(Math.sin(elapsed * Math.PI) * speedLimit)} KM/H`
     : boosting ? "PULLING AHEAD" : "AT STATION";
   if (speedLabel !== lastSpeed) {
