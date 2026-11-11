@@ -424,11 +424,11 @@ let timerId;
 let active = false;
 let lastSecond = roundSeconds;
 const routeStops = [
-  ["Philadelphia", "CITY TERMINAL"],
-  ["Wilmington", "RIVER CROSSING"],
-  ["Aberdeen", "TOWN STATION"],
-  ["Baltimore", "CITY STATION"],
-  ["Washington", "UNION STATION"]
+  ["Millbrook", "VILLAGE PLATFORM"],
+  ["River Junction", "RIVER CROSSING"],
+  ["Northfield", "MARKET TOWN"],
+  ["Harbor City", "CITY STATION"],
+  ["Grand Terminal", "EXPRESS TERMINUS"]
 ];
 let run = [];
 
@@ -461,7 +461,7 @@ function updateRoute(phase, cue) {
   window.dispatchEvent(new CustomEvent("built-world-route", { detail: state }));
   $("route-points").textContent = `${points} PTS`;
   const overview = phase === "intro" || phase === "results";
-  $("route-location").textContent = phase === "intro" ? "Philadelphia to Washington" : phase === "results" ? "Arrived in Washington" : routeStops[index][0];
+  $("route-location").textContent = phase === "intro" ? "Millbrook to Grand Terminal" : phase === "results" ? "Arrived at Grand Terminal" : routeStops[index][0];
   $("route-coordinates").textContent = overview ? "5 STOPS" : routeStops[index][1];
   $("route-stops").replaceChildren(...routeStops.map(([name], number) => {
     const stop = document.createElement("li");

@@ -112,8 +112,8 @@ function makeTerrain() {
 
 function makeCity(center, index) {
   const list = cities[index];
-  const town = index === 2;
-  const density = [5, 4, 3, 6, 5][index];
+  const town = index === 0 || index === 2;
+  const density = [3, 4, 4, 6, 7][index];
   for (const offset of [-4.45, -.9, 2.65]) {
     slab(list, center - 7.1, offset - 8.3, 14.2, .39, -.09, palette.road);
   }
@@ -136,7 +136,7 @@ function makeCity(center, index) {
       if (seed % 2 === 0) tree(list, x + 1.66, z + .7, .9);
     }
   }
-  if (index === 3 || index === 0) {
+  if (index === 3 || index === 4) {
     const x = center + 1.2, z = -13.8;
     building(list, x, z, 1.75, 1.68, 6.3, "#9ab4cf", false);
     box(list, x + .76, z + .72, .065, .065, 6.5, .9, "#e1c6c9");
@@ -147,21 +147,48 @@ function makeCity(center, index) {
   }
 }
 
-function train(list, x, color) {
-  for (let car = 0; car < 3; car += 1) {
-    const start = x - 2.3 - car * 1.99;
-    box(list, start, -.46, 1.89, .92, 0, .56, palette.silver);
-    box(list, start, .466, 1.89, .016, .11, .06, color);
-    for (let win = 0; win < 4; win += 1) {
-      box(list, start + .16 + win * .37, .468, .22, .016, .32, .13, palette.blue);
+const fleet = [
+  { name: "Heritage diesel", threshold: 0, body: "#cfb586", stripe: "#944b45", roof: "#3e4c58", cars: 3 },
+  { name: "Regional express", threshold: 30, body: "#d6c9ac", stripe: "#1f747a", roof: "#6f8289", cars: 3 },
+  { name: "Intercity electric", threshold: 75, body: "#cfdae9", stripe: "#496db5", roof: "#869eb5", cars: 4 },
+  { name: "High-speed express", threshold: 150, body: "#e9f4f6", stripe: "#93e68e", roof: "#aac4d5", cars: 4 }
+];
+
+function train(list, x, tier, glow) {
+  const set = fleet[tier];
+  const length = tier > 1 ? 2.26 : 1.88;
+  const step = length + .12;
+  for (let car = 0; car < set.cars; car += 1) {
+    const start = x - length - car * step;
+    box(list, start, -.49, length, .98, .065, .63, set.body);
+    box(list, start + .04, -.43, length - .08, .86, .695, .09, set.roof);
+    for (const z of [-.505, .492]) {
+      box(list, start, z, length, .014, .18, .064, set.stripe);
+      for (let win = 0; win < 4; win += 1) {
+        box(list, start + .17 + win * length * .20, z, .23, .014, .42, .15, palette.blue);
+      }
     }
+    for (const bogie of [.32, length - .44]) box(list, start + bogie, -.36, .21, .72, -.025, .12, "#203146");
   }
-  const nose = x + .17;
-  polygon(list, palette.silver, [[x - .42, .56, -.46], [x - .42, .56, .46], [nose, .15, .28], [nose, .15, -.28]]);
-  polygon(list, "#b1cedf", [[x - .42, 0, .46], [nose, 0, .28], [nose, .15, .28], [x - .42, .56, .46]]);
-  polygon(list, "#c5dbeb", [[x - .42, .56, -.46], [nose, .15, -.28], [nose, 0, -.28], [x - .42, 0, -.46]]);
-  polygon(list, "#eff9df", [[nose, 0, -.28], [nose, .15, -.28], [nose, .15, .28], [nose, 0, .28]]);
-  polygon(list, palette.blue, [[x - .29, .48, -.38], [x - .29, .48, .38], [x - .13, .37, .33], [x - .13, .37, -.33]]);
+
+  const tail = x - length - (set.cars - 1) * step;
+  box(list, tail - .019, -.34, .026, .68, .35, .18, palette.blue);
+  for (const z of [-.33, .26]) box(list, tail - .04, z, .03, .075, .20, .075, "#ff7a70");
+  if (tier < 2) {
+    box(list, x - .51, -.47, .34, .94, .70, .24, set.body);
+    box(list, x - .15, -.32, .021, .64, .73, .15, palette.blue);
+    box(list, x - 1.05, -.15, .20, .29, .78, .10, set.roof);
+  } else {
+    const nose = x + (tier === 3 ? .91 : .58);
+    polygon(list, set.body, [[x, .69, -.49], [x, .69, .49], [nose, .19, .27], [nose, .19, -.27]]);
+    polygon(list, "#b1cedf", [[x, .07, .49], [nose, .08, .27], [nose, .19, .27], [x, .69, .49]]);
+    polygon(list, "#bed7e9", [[x, .69, -.49], [nose, .19, -.27], [nose, .08, -.27], [x, .07, -.49]]);
+    polygon(list, "#eff9df", [[nose, .08, -.27], [nose, .19, -.27], [nose, .19, .27], [nose, .08, .27]]);
+    polygon(list, palette.blue, [[x + .07, .66, -.39], [x + .07, .66, .39], [x + .29, .535, .33], [x + .29, .535, -.33]]);
+  }
+  if (glow) {
+    slab(list, tail - .65, -.32, .66, .64, .01, glow, 1);
+  }
 }
 
 makeTerrain();
@@ -169,6 +196,7 @@ stationX.forEach(makeCity);
 
 const camera = new THREE.PerspectiveCamera(42, 1, .1, 130);
 const vector = new THREE.Vector3();
+const nearPoint = new THREE.Vector3();
 const canvas = document.createElement("canvas");
 view.append(canvas);
 let render;
@@ -234,7 +262,19 @@ function canvasRenderer(output) {
     context.clearRect(0, 0, w, h);
     const projected = [];
     for (const face of sceneFaces) {
-      const screen = face.points.map(point => {
+      const points = [];
+      for (let i = 0; i < face.points.length; i += 1) {
+        const from = face.points[i], to = face.points[(i + 1) % face.points.length];
+        const start = -nearPoint.set(...from).applyMatrix4(camera.matrixWorldInverse).z;
+        const end = -nearPoint.set(...to).applyMatrix4(camera.matrixWorldInverse).z;
+        if (start >= .35) points.push(from);
+        if ((start >= .35) !== (end >= .35)) {
+          const t = (.35 - start) / (end - start);
+          points.push(from.map((coordinate, axis) => coordinate + (to[axis] - coordinate) * t));
+        }
+      }
+      if (points.length < 3) continue;
+      const screen = points.map(point => {
         vector.set(...point).project(camera);
         return [(vector.x + 1) * w / 2, (1 - vector.y) * h / 2, vector.z];
       });
@@ -265,6 +305,10 @@ let lastFrame = 0;
 let phase = "intro";
 let launch = false;
 let lastSpeed = "";
+let points = 0;
+let stationPoints = 0;
+let boost = 0;
+const service = document.querySelector("#train-service");
 const tripMs = 1550;
 
 function update(state) {
@@ -275,7 +319,10 @@ function update(state) {
     target = next;
     departedAt = performance.now();
     launch = startFirst;
+    stationPoints = state.points;
   }
+  points = state.points;
+  if (state.phase === "intro" || state.phase === "results") stationPoints = points;
   if (state.cue) {
     flashAt = performance.now();
     rare = state.cue === "rare";
@@ -294,16 +341,21 @@ function draw(now) {
   const elapsed = reducedMotion.matches ? 1 : clamp((now - departedAt) / tripMs);
   const traveling = origin !== target && elapsed < 1;
   const pulse = reducedMotion.matches ? 0 : clamp(1 - (now - flashAt) / 750);
-  if (!redraw && !traveling && !pulse) return;
-  redraw = traveling || pulse > 0;
+  const desiredBoost = phase === "play" || phase === "review"
+    ? Math.min(2.6, (points - stationPoints) * .036)
+    : 0;
+  boost = reducedMotion.matches ? desiredBoost : boost + (desiredBoost - boost) * .24;
+  const boosting = Math.abs(desiredBoost - boost) > .02;
+  if (!redraw && !traveling && !pulse && !boosting) return;
+  redraw = traveling || pulse > 0 || boosting;
   lastFrame = now;
   current = origin + (target - origin) * smooth(elapsed);
 
-  const x = current * 25;
+  const x = current * 25 + boost;
   camera.aspect = width / height;
-  camera.fov = camera.aspect < 1.25 ? 48 : 42;
-  camera.position.set(x + 12, 16.5, 24);
-  camera.lookAt(x + 2.9, 1.25, -4.6);
+  camera.fov = camera.aspect < 1.25 ? 61 : 48;
+  camera.position.set(x - 16.5, 12.1, 9.4);
+  camera.lookAt(x + 7.2, 1.55, -2.6);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 
@@ -324,6 +376,7 @@ function draw(now) {
     let rise = index < target ? 1 : smooth(clamp(1 - Math.abs(current - index) / .51));
     if (phase === "intro" && index === 0) rise = 1;
     if (launch && traveling && index === 0) rise = smooth(elapsed);
+    if (phase === "intro" && index === 1) rise = .29;
     if (rise < .035) continue;
     for (const face of city) {
       if (face.layer === 0) {
@@ -333,15 +386,19 @@ function draw(now) {
       faces.push({ ...face, points: face.points.map(([px, y, pz]) => [px, Math.max(-.30, y * rise - (1 - rise) * .62), pz]) });
     }
   }
-  train(faces, x + .8, pulse && rare ? palette.coral : palette.mint);
+  const tier = fleet.findLastIndex(item => points >= item.threshold);
+  train(faces, x + .8, tier, pulse ? (rare ? palette.coral : palette.mint) : "");
+  if (service.textContent !== fleet[tier].name) service.textContent = fleet[tier].name;
   render(faces, width, height);
 
-  const speedLabel = traveling ? `${Math.round(Math.sin(elapsed * Math.PI) * 300)} KM/H` : "AT STATION";
+  const speedLimit = [105, 160, 220, 300][tier];
+  const speedLabel = traveling ? `${Math.round(Math.sin(elapsed * Math.PI) * speedLimit)} KM/H`
+    : boosting ? "PULLING AHEAD" : "AT STATION";
   if (speedLabel !== lastSpeed) {
     speed.textContent = speedLabel;
     lastSpeed = speedLabel;
   }
-  route.style.setProperty("--rail-progress", clamp(current / (stationX.length - 1)) * 100 + "%");
+  route.style.setProperty("--rail-progress", clamp((current + boost / 25) / (stationX.length - 1)) * 100 + "%");
 }
 
 new ResizeObserver(() => { redraw = true; }).observe(view);

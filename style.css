@@ -235,3 +235,63 @@ aside { min-width: 0; padding: clamp(18px, 3vw, 33px); background: #1a263a; }
 @media (max-width: 520px) { .pass-modes { grid-template-columns: 1fr; } .pass-modes p { min-height: 0; } .station-label { font-size: 8px; } }
 
 @media (max-width: 380px) { .masthead { gap: 6px; letter-spacing: .02em; } .masthead-actions { gap: 5px; } .masthead-actions button { padding-inline: 6px; } .pass-toggle span { display: none; } }
+
+/* Keep the train in view while the answer controls are active. */
+.cover { position: relative; grid-template-columns: 1fr; isolation: isolate; }
+.cover-visual { grid-area: 1 / 1; min-width: 0; padding: 17px 22px 19px; }
+.cover-copy {
+  grid-area: 1 / 1;
+  z-index: 2;
+  align-self: start;
+  justify-self: start;
+  width: min(29%, 335px);
+  margin: 57px 0 0 37px;
+  padding: 22px 23px;
+  background: linear-gradient(120deg, #111c30f5, #17253ed9);
+  color: var(--paper);
+  border: 1px solid #93afc55c;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px #101b2b56;
+}
+.cover-copy h1 { margin: 18px 0 17px; font-size: clamp(52px, 6.2vw, 92px); }
+.cover-copy h1 span { color: #ffae90; }
+.cover-copy .instructions { color: #d2ddea; font-size: 14px; margin-bottom: 16px; }
+.cover-copy .subtitle { font-size: clamp(14px, 1.4vw, 19px); }
+.cover-copy .primary { background: var(--lime); color: #18253a; }
+.cover-copy .primary:hover { background: #e4ffbd; }
+.cover-copy .primary span { color: #18253a; }
+.cover-copy .dot { background: #ffad87; }
+.cover-links { margin-top: 11px; }
+.cover-links button { color: #deebf6; }
+.cover-strip { grid-area: 2 / 1; }
+.cover #train-view { height: clamp(410px, 45vw, 580px); }
+.cover #train-speed { right: 12px; left: auto; top: 12px; }
+#train-service {
+  position: absolute; right: 10px; bottom: 10px; max-width: calc(100% - 20px);
+  color: #e6f3ff; background: #121d31ed; border: 1px solid #819cb392;
+  border-radius: 4px; padding: 6px 8px; font: 700 11px var(--mono);
+}
+.train-window { background: radial-gradient(ellipse at 74% 16%, #607993, #2e415e 48%, #17283f 94%); }
+#game-route {
+  padding: 14px clamp(12px, 3vw, 30px) 17px;
+  margin: 0; background: radial-gradient(ellipse at 65% 40%, #314764, #172337 75%);
+}
+#game-route #train-view { height: clamp(170px, 24vw, 310px); }
+#game-route .train-window { margin: 8px 0; }
+#game-route #route-stops { margin-top: 9px; }
+.game-body .play { padding-top: clamp(20px, 3vw, 41px); }
+#results-route #train-view { height: clamp(160px, 21vw, 290px); }
+@media (max-width: 840px) {
+  .cover-visual { grid-area: 1 / 1; padding: 12px; }
+  .cover-copy { grid-area: 2 / 1; width: auto; margin: 0; justify-self: stretch; border-radius: 0; border: 0; background: #19273e; box-shadow: none; }
+  .cover-copy h1 { font-size: clamp(56px, 11vw, 84px); }
+  .cover-copy h1 br { display: none; }
+  .cover-copy h1 em { margin-left: .12em; }
+  .cover #train-view { height: clamp(195px, 48vw, 410px); }
+  .cover-strip { grid-area: 3 / 1; }
+  .cover-photo { margin-top: 12px; }
+}
+@media (max-width: 520px) {
+  #game-route #train-view { height: 154px; }
+  #game-route .route-current { display: none; }
+}
