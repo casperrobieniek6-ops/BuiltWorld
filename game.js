@@ -374,12 +374,44 @@ let deadline = 0;
 let timerId;
 let active = false;
 let lastSecond = roundSeconds;
-const artwork = ["houses", "tunnel", "stormwater", "housing", "bridge"];
+const photoLabels = ["Residential architecture", "Underwater road crossing", "Stormwater infrastructure", "Planned housing", "Bridge engineering"];
+const routeStops = [
+  ["Chicago", "41.88° N · 87.63° W"],
+  ["Lisbon", "38.72° N · 9.14° W"],
+  ["Rotterdam", "51.92° N · 4.48° E"],
+  ["Warsaw", "52.23° N · 21.01° E"],
+  ["San Francisco", "37.77° N · 122.42° W"]
+];
 let run = [];
 
-function startRound() {
+function updateRoute(phase, cue) {
+  const cleared = run.map(result => result.found.size > 0);
+  const points = run.reduce((sum, result) => sum + result.points, 0);
+  const index = Math.min(roundIndex, rounds.length - 1);
+  const state = { phase, index, cleared, points, cue, stops: routeStops };
+  window.builtWorldRoute = state;
+  window.dispatchEvent(new CustomEvent("built-world-route", { detail: state }));
+  $("route-points").textContent = `${points} PTS`;
+  const overview = phase === "intro" || phase === "results";
+  $("route-location").textContent = phase === "intro" ? "Five stops" : phase === "results" ? "Route complete" : routeStops[index][0];
+  $("route-coordinates").textContent = overview ? "EDITION 001" : routeStops[index][1];
+  $("route-stops").replaceChildren(...routeStops.map(([name], number) => {
+    const stop = document.createElement("li");
+    const current = !overview && number === index;
+    const visited = phase === "results" || (!overview && (number < index || (current && phase === "review")));
+    const status = cleared[number] ? "cleared" : visited ? "missed" : current ? "current" : "upcoming";
+    stop.className = status;
+    if (current) stop.setAttribute("aria-current", "step");
+    stop.title = `${name} · ${status}`;
+    stop.setAttribute("aria-label", `Round ${number + 1}, ${name}, ${status}`);
+    stop.textContent = String(number + 1);
+    return stop;
+  }));
+}
+
+function prepareRound() {
   clearInterval(timerId);
-  active = true;
+  active = false;
   const round = rounds[roundIndex];
   run[roundIndex] = { found: new Set(), points: 0 };
   $("round").textContent = `ROUND ${roundIndex + 1} / ${rounds.length} · ${round.label.toUpperCase()}`;
@@ -387,15 +419,28 @@ function startRound() {
   $("rule").textContent = round.rule;
   $("feedback").textContent = "";
   $("feedback").dataset.tone = "neutral";
-  $("round-art").style.backgroundImage = `linear-gradient(0deg, #111a10e8, #17201722 90%), url("art/${artwork[roundIndex]}.webp")`;
+  $("round-photo").textContent = `PHOTO SLOT · ${photoLabels[roundIndex].toUpperCase()}`;
+  $("round-art").classList.remove("urgent");
   lastSecond = roundSeconds;
-  gameAudio.play("start");
   $("guess").value = "";
   $("count").textContent = "0";
   $("empty").hidden = false;
   $("found").replaceChildren();
+  for (const id of ["form", "end", "reveal", "next"]) $(id).hidden = true;
+  $("begin-round").hidden = false;
+  $("timer").textContent = `0:${roundSeconds}`;
+  $("bar").style.transform = "scaleX(1)";
+  updateRoute("travel");
+  $("begin-round").focus();
+}
+
+function startRound() {
+  if (active || $("begin-round").hidden) return;
+  active = true;
+  $("begin-round").hidden = true;
   for (const id of ["form", "end"]) $(id).hidden = false;
-  for (const id of ["reveal", "next"]) $(id).hidden = true;
+  gameAudio.play("start");
+  updateRoute("play");
   deadline = Date.now() + roundSeconds * 1000;
   tick();
   timerId = setInterval(tick, 100);
@@ -419,6 +464,7 @@ function finishRound() {
   clearInterval(timerId);
   const result = run[roundIndex];
   gameAudio.play("end");
+  updateRoute("review");
   $("feedback").dataset.tone = "neutral";
   $("feedback").textContent = result.found.size
     ? `Round cleared · ${result.found.size} found · ${result.points} points`
@@ -468,6 +514,7 @@ $("form").addEventListener("submit", event => {
   result.points += entry.points;
   const rare = entry.points === 40;
   gameAudio.play(rare ? "rare" : "correct");
+  updateRoute("play", rare ? "rare" : "correct");
   $("feedback").dataset.tone = rare ? "rare" : "correct";
   $("feedback").textContent = `+${entry.points} · ${entry.name}${corrected ? " · Spelling corrected" : ""}${entry.points === 40 ? " · Obscure find" : ""}`;
   $("count").textContent = result.found.size;
@@ -513,6 +560,8 @@ function showResults() {
   $("copyStatus").textContent = "";
   $("game").hidden = true;
   $("results").hidden = false;
+  $("results-route").append($("route"));
+  updateRoute("results");
   $("resultsTitle").focus();
 }
 
@@ -522,17 +571,21 @@ function startGame() {
   $("intro").hidden = true;
   $("results").hidden = true;
   $("game").hidden = false;
-  startRound();
+  $("game-route").append($("route"));
+  prepareRound();
 }
 
+$("intro-route").append($("route"));
+updateRoute("intro");
 $("start").addEventListener("click", startGame);
+$("begin-round").addEventListener("click", startRound);
 $("replay").addEventListener("click", startGame);
 $("end").addEventListener("click", finishRound);
 $("next").addEventListener("click", () => {
-  if (active) return;
+  if (active || $("next").hidden) return;
   roundIndex += 1;
   if (roundIndex === rounds.length) showResults();
-  else startRound();
+  else prepareRound();
 });
 $("copy").addEventListener("click", async () => {
   try {

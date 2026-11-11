@@ -1,7 +1,7 @@
 # Built World
 
-A rapid-fire quiz about architecture, infrastructure, and urban planning.
+A five-round quiz about architecture, infrastructure, and urban planning.
 
-Open `index.html` in a modern browser. Press Start game to begin. Each round gives you 45 seconds to enter as many distinct answers as possible. One correct answer clears the round. The sound toggle remembers your preference on this browser.
+Run `python3 -m http.server 8000` from the repository root and open `http://localhost:8000` in a browser. The 3D globe uses Three.js, with a Canvas fallback when WebGL is unavailable. There is no build step.
 
-The artwork is generated editorial illustration. The game runs in the browser with no build step or server dependency.
+The cover and round photo slots are placeholders. Globe land geometry is based on Natural Earth 1:110m data via [World Atlas](https://github.com/topojson/world-atlas). Three.js is distributed under the [MIT license](globe/THREE-LICENSE.txt).
