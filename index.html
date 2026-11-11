@@ -3,20 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#171b17">
+<meta name="theme-color" content="#121a2b">
 <meta name="description" content="A rapid-fire quiz about the things people build.">
 <title>Built World</title>
 <link rel="stylesheet" href="style.css">
 <script defer src="audio.js"></script>
 <script defer src="daily-content.js"></script>
 <script defer src="game.js"></script>
-<script type="module" src="globe.mjs"></script>
+<script type="module" src="train.mjs"></script>
 </head>
 <body>
 <div class="shell">
 <header class="masthead">
   <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">▥</span> BUILT WORLD</a>
-  <button class="sound" id="sound" type="button" aria-pressed="true"><span id="sound-icon" aria-hidden="true">◖))</span> <span id="sound-label">Sound on</span></button>
+  <div class="masthead-actions"><button class="pass-toggle" id="open-pass" type="button">Rail Pass <span>↗</span></button>
+  <button class="sound" id="sound" type="button" aria-pressed="true"><span id="sound-icon" aria-hidden="true">◖))</span> <span id="sound-label">Sound on</span></button></div>
 </header>
 <main>
 <section id="intro" class="cover">
@@ -25,7 +26,8 @@
     <h1>Built<br><em>World<span>.</span></em></h1>
     <p class="subtitle">How well do you know the world we built?</p>
     <p class="instructions">Type as many answers as you can. One clears the round. Obscure finds score more.</p>
-    <button class="primary" id="start">Start game <span aria-hidden="true">→</span></button>
+    <button class="primary" id="start">Play daily <span aria-hidden="true">→</span></button>
+    <div class="cover-links"><button type="button" id="open-unlimited">Unlimited</button><button type="button" id="open-archive">Archive</button></div>
   </div>
   <div class="cover-visual"><div id="intro-route"></div><div id="cover-photo" class="photo-slot cover-photo" aria-label="Cover photo slot">COVER PHOTO SLOT · GOLDEN GATE</div></div>
   <div class="cover-strip"><span>5 ROUNDS</span><span>45 SECONDS EACH</span><span id="answer-count"></span></div>
@@ -53,19 +55,31 @@
     <textarea id="share" aria-label="Shareable result" readonly hidden></textarea><p id="copyStatus" role="status"></p>
   </div></div>
 </section>
-<section class="route" id="route" aria-label="Expedition progress">
-  <div class="route-head"><span>EARTH ROUTE</span><span id="route-points">0 PTS</span></div>
-  <div id="earth-view" aria-hidden="true"><div class="earth-fallback"></div></div>
+<section class="route" id="route" aria-label="Rail journey progress">
+  <div class="route-head"><span>NORTHEAST CORRIDOR</span><span id="route-points">0 PTS</span></div>
+  <div class="train-window"><div id="train-view" aria-hidden="true"></div><span id="train-speed" aria-hidden="true">AT STATION</span></div>
   <div class="route-current"><span id="route-location">Five stops</span><span id="route-coordinates"></span></div>
   <ol id="route-stops" aria-label="Round status"></ol>
 </section>
 </main>
+<dialog id="rail-pass" aria-labelledby="pass-title">
+  <div class="pass-head">
+    <p class="eyebrow">BUILT WORLD</p>
+    <form method="dialog"><button class="pass-close" aria-label="Close Rail Pass">×</button></form>
+  </div>
+  <h2 id="pass-title">Rail Pass<span>.</span></h2>
+  <p class="pass-note">Unlimited and Archive are available to try in this preview. Paid checkout is coming later.</p>
+  <div class="pass-modes">
+    <section><h3>Unlimited</h3><p>Run a shuffled five-round game whenever you want.</p><button class="primary" id="practice" type="button">Start practice →</button></section>
+    <section><h3>Archive</h3><p>Play a previous date from the daily rotation.</p><label for="archive-date">Edition</label><select id="archive-date"></select><button class="quiet" id="play-archive" type="button">Play selected date →</button></section>
+  </div>
+</dialog>
 <footer class="site-footer">
   <div class="footer-meta"><span>BUILT WORLD / PLAYTEST</span><span>DAILY RESET · MIDNIGHT EASTERN</span></div>
   <div class="footer-links">
-    <section aria-label="Game links"><h2>Game</h2><ul><li>Archive</li><li>Donate</li><li>Support</li><li>Feedback</li></ul></section>
+    <section aria-label="Game links"><h2>Game</h2><ul><li><button type="button" id="footer-archive">Archive</button></li><li>Donate</li><li>Support</li><li>Feedback</li></ul></section>
     <section aria-label="Release links"><h2>Release</h2><ul><li>Privacy</li><li>Terms</li><li>Accessibility</li><li>Licensing and credits</li></ul></section>
-    <section aria-label="Data sources"><h2>Data sources</h2><ul><li><a href="https://ourairports.com/data/">OurAirports</a></li><li><a href="https://dataportal.orr.gov.uk/station-usage">Office of Rail and Road</a></li><li><a href="https://github.com/topojson/world-atlas">Natural Earth via World Atlas</a></li></ul></section>
+    <section aria-label="Data sources"><h2>Data sources</h2><ul><li><a href="https://ourairports.com/data/">OurAirports</a></li><li><a href="https://dataportal.orr.gov.uk/station-usage">Office of Rail and Road</a></li></ul></section>
   </div>
 </footer>
 </div>

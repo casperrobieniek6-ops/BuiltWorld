@@ -4,7 +4,7 @@ Built World is a five-round daily quiz about architecture, infrastructure, and u
 
 ## Play locally
 
-Run `python3 -m http.server 8000` from this repository root, then open [localhost:8000](http://localhost:8000). In the hosted-site checkout, serve the `dist` directory instead. The checked-in game includes a compiled content snapshot. Three.js uses its bundled MIT license and the globe has a Canvas fallback.
+Run `python3 -m http.server 8000` from this repository root, then open [localhost:8000](http://localhost:8000). In the hosted-site checkout, serve the `dist` directory instead. The checked-in game includes a compiled content snapshot. The high-speed rail scene uses Three.js under its bundled MIT license, with an animated Canvas fallback.
 
 ## Build and schedule content
 
@@ -26,5 +26,8 @@ Adobe search links require no integration. Direct programmatic Adobe Stock API l
 
 - Airport data from [OurAirports](https://ourairports.com/data/), public domain. Eligible rows are scheduled land airports with unique IATA codes.
 - Rail entries use the [Office of Rail and Road, Table 1410, April 2024 to March 2025](https://dataportal.orr.gov.uk/station-usage), published by ORR. Points are based on reported station usage, and names and codes are transformed for game scoring. See the [Open Government Licence](https://www.nationalarchives.gov.uk/doc/open-government-licence/).
-- Globe land geometry is based on Natural Earth via [World Atlas](https://github.com/topojson/world-atlas).
-- Footer placeholders reserve space for archive, donations, support, feedback, privacy, terms, accessibility, and licensing/credits. These are labels until the corresponding pages or destinations are ready.
+- Footer placeholders reserve space for donations, support, feedback, privacy, terms, accessibility, and licensing/credits. These are labels until the corresponding pages or destinations are ready.
+
+## Rail Pass preview
+
+Unlimited reshuffles five question banks per run. Archive reconstructs the last 14 dates from the current daily rotation and dated overrides. The hosted preview allows both modes. Paid release requires checkout and server-verified account access.

@@ -323,18 +323,24 @@ const calendar = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit"
 });
 const dateParts = Object.fromEntries(calendar.formatToParts().map(({ type, value }) => [type, value]));
-const editionDate = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
-const dayNumber = Date.parse(editionDate) / 86400000;
-const datedEdition = content.dates[editionDate];
-const rotation = curatedIds.filter((_, index) => index !== dayNumber % curatedIds.length);
-const largeBank = ["airports", "rail"][dayNumber % 2];
-rotation.splice(dayNumber % 4, 0, largeBank);
-const roundIds = datedEdition?.rounds ?? (banks[largeBank] ? rotation : curatedIds);
-const rounds = roundIds.map(id => ({ ...banks[id], id }));
-const photos = datedEdition?.photos ?? {};
+const today = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+let editionDate = today;
+let mode = "daily";
+let rounds = [];
+let photos = {};
+const preparedBanks = new Map();
 
-for (const round of rounds) {
-  round.lookup = new Map();
+function dailyIds(date) {
+  const dayNumber = Date.parse(date) / 86400000;
+  const rotation = curatedIds.filter((_, index) => index !== dayNumber % curatedIds.length);
+  const largeBank = ["airports", "rail"][dayNumber % 2];
+  rotation.splice(dayNumber % 4, 0, largeBank);
+  return content.dates[date]?.rounds ?? (banks[largeBank] ? rotation : curatedIds);
+}
+
+function prepareBank(id) {
+  if (preparedBanks.has(id)) return preparedBanks.get(id);
+  const round = { ...banks[id], id, lookup: new Map(), byLength: new Map() };
   round.entries = round.answers.map((answer, index) => {
     const [name, aliases, points] = Array.isArray(answer)
       ? answer
@@ -343,12 +349,27 @@ for (const round of rounds) {
     for (const alias of [name, ...aliases]) round.lookup.set(normalize(alias), entry);
     return entry;
   });
-  round.byLength = new Map();
   for (const [alias, entry] of round.lookup) {
     if (alias.length < 5) continue;
     if (!round.byLength.has(alias.length)) round.byLength.set(alias.length, []);
     round.byLength.get(alias.length).push([alias, entry]);
   }
+  preparedBanks.set(id, round);
+  return round;
+}
+
+function configureRun(kind, date = today) {
+  mode = kind;
+  editionDate = date;
+  photos = kind === "unlimited" ? {} : content.dates[date]?.photos ?? {};
+  const ids = kind === "unlimited" ? Object.keys(banks) : dailyIds(date);
+  if (kind === "unlimited") {
+    for (let i = ids.length - 1; i > 0; i -= 1) {
+      const other = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[other]] = [ids[other], ids[i]];
+    }
+  }
+  rounds = ids.slice(0, 5).map(prepareBank);
 }
 
 // Optimal string alignment treats an adjacent letter swap as one typo.
@@ -403,11 +424,11 @@ let timerId;
 let active = false;
 let lastSecond = roundSeconds;
 const routeStops = [
-  ["Chicago", "41.88° N · 87.63° W"],
-  ["Lisbon", "38.72° N · 9.14° W"],
-  ["Rotterdam", "51.92° N · 4.48° E"],
-  ["Warsaw", "52.23° N · 21.01° E"],
-  ["San Francisco", "37.77° N · 122.42° W"]
+  ["Philadelphia", "CITY TERMINAL"],
+  ["Wilmington", "RIVER CROSSING"],
+  ["Aberdeen", "TOWN STATION"],
+  ["Baltimore", "CITY STATION"],
+  ["Washington", "UNION STATION"]
 ];
 let run = [];
 
@@ -440,8 +461,8 @@ function updateRoute(phase, cue) {
   window.dispatchEvent(new CustomEvent("built-world-route", { detail: state }));
   $("route-points").textContent = `${points} PTS`;
   const overview = phase === "intro" || phase === "results";
-  $("route-location").textContent = phase === "intro" ? "Five stops" : phase === "results" ? "Route complete" : routeStops[index][0];
-  $("route-coordinates").textContent = overview ? editionDate : routeStops[index][1];
+  $("route-location").textContent = phase === "intro" ? "Philadelphia to Washington" : phase === "results" ? "Arrived in Washington" : routeStops[index][0];
+  $("route-coordinates").textContent = overview ? "5 STOPS" : routeStops[index][1];
   $("route-stops").replaceChildren(...routeStops.map(([name], number) => {
     const stop = document.createElement("li");
     const current = !overview && number === index;
@@ -451,7 +472,13 @@ function updateRoute(phase, cue) {
     if (current) stop.setAttribute("aria-current", "step");
     stop.title = `${name} · ${status}`;
     stop.setAttribute("aria-label", `Round ${number + 1}, ${name}, ${status}`);
-    stop.textContent = String(number + 1);
+    const marker = document.createElement("span");
+    marker.className = "station-marker";
+    marker.textContent = String(number + 1);
+    const label = document.createElement("span");
+    label.className = "station-label";
+    label.textContent = name;
+    stop.append(marker, label);
     return stop;
   }));
 }
@@ -607,7 +634,7 @@ function showResults() {
     return row;
   }));
   const marks = run.map(result => result.found.size ? "■" : "□").join(" ");
-  $("share").value = `Built World ${editionDate} · ${cleared}/${rounds.length} cleared · ${answers} found · ${points} points\n${marks}`;
+  $("share").value = `Built World ${mode === "unlimited" ? "Unlimited" : editionDate} · ${cleared}/${rounds.length} cleared · ${answers} found · ${points} points\n${marks}`;
   $("share").hidden = true;
   $("copyStatus").textContent = "";
   $("game").hidden = true;
@@ -617,7 +644,10 @@ function showResults() {
   $("resultsTitle").focus();
 }
 
-function startGame() {
+function startGame(kind = "daily", date = today) {
+  configureRun(kind, date);
+  const label = kind === "unlimited" ? "UNLIMITED" : `${kind.toUpperCase()} / ${date}`;
+  $("results-day").textContent = `${label} / RESULTS`;
   run = [];
   roundIndex = 0;
   $("intro").hidden = true;
@@ -627,15 +657,41 @@ function startGame() {
   prepareRound();
 }
 
-$("edition-day").textContent = `DAILY / ${editionDate}`;
-$("results-day").textContent = `DAILY / ${editionDate} / RESULTS`;
+$("edition-day").textContent = `DAILY / ${today}`;
+configureRun("daily");
 $("answer-count").textContent = `${rounds.reduce((total, round) => total + round.entries.length, 0).toLocaleString("en-US")} ACCEPTED ANSWERS TODAY`;
 showPhoto($("cover-photo"), "cover", "Golden Gate");
 $("intro-route").append($("route"));
 updateRoute("intro");
-$("start").addEventListener("click", startGame);
+$("start").addEventListener("click", () => startGame());
+const pass = $("rail-pass");
+const archiveDate = $("archive-date");
+const dateLabel = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
+for (let offset = 1; offset <= 14; offset += 1) {
+  const date = new Date(Date.parse(today) - offset * 86400000);
+  const option = document.createElement("option");
+  option.value = date.toISOString().slice(0, 10);
+  option.textContent = dateLabel.format(date);
+  archiveDate.append(option);
+}
+function openPass(focus) {
+  if (!pass.open) pass.showModal();
+  $(focus).focus();
+}
+$("open-pass").addEventListener("click", () => openPass("practice"));
+$("open-unlimited").addEventListener("click", () => openPass("practice"));
+$("open-archive").addEventListener("click", () => openPass("archive-date"));
+$("footer-archive").addEventListener("click", () => openPass("archive-date"));
+$("practice").addEventListener("click", () => {
+  pass.close();
+  startGame("unlimited");
+});
+$("play-archive").addEventListener("click", () => {
+  pass.close();
+  startGame("archive", archiveDate.value);
+});
 $("begin-round").addEventListener("click", startRound);
-$("replay").addEventListener("click", startGame);
+$("replay").addEventListener("click", () => startGame(mode, editionDate));
 $("end").addEventListener("click", finishRound);
 $("next").addEventListener("click", () => {
   if (active || $("next").hidden) return;
